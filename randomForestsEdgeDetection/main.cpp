@@ -70,6 +70,15 @@ void setRandomColor (Vec3b * pixel, int seed) {
     pixel[0][2] = r;
 }
 
+Vec3b getRandomColor (int seed) {
+    Vec3b color;
+    srand(seed);
+    color[0] = rand() % 255 + 1;
+    color[1] = rand() % 255 + 1;
+    color[2] = rand() % 255 + 1;
+    return color;
+}
+
 bool outOfBounds (Mat * frame, int x, int y) {
     return (x < 0 || y < 0 || x > (* frame).cols || y > (* frame).rows);
 }
@@ -81,7 +90,42 @@ int hammingWeight (uint8_t x) {
     return x;
 }
 
-void __explore (Mat * frame, int x, int y, uint8_t * foundDirections, uint8_t * line, Mat * visualization, int clusterNumber) {
+class Cluster {
+public:
+    float averageAngle;
+    int mass;
+    unsigned long uid;
+    Vec3b color;
+    uint8_t foundDirections;
+    //A single point from the cluster, randomity doesn't matter
+    Point2i point;
+    
+    //Used only during calculation
+    static std::vector<unsigned char> * directions;
+    
+    Cluster (unsigned long id) {
+        averageAngle = 0.0;
+        mass = 0;
+        uid = id;
+        foundDirections = 0;
+        color = getRandomColor((int)id);
+        point = Point2i();
+        directions = new std::vector<unsigned char>();
+    }
+};
+std::vector<unsigned char> * Cluster::directions;
+
+//TODO: How to spread out over whole half-circle?
+float findAverageAngle (Cluster * cluster) {
+    double angle = 0.0;
+    for (std::vector<unsigned char>::iterator it = cluster->directions->begin(); it != cluster->directions->end(); ++it) {
+        angle += 0.5 * (*it - 1) + 0.5;
+    }
+    angle /= cluster->mass;
+    return angle;
+}
+
+void __explore (Mat * frame, int x, int y, Cluster * cluster, uint8_t * line, Mat * visualization) {
     if (outOfBounds(frame, x, y)) return;
     if (line == NULL) {
         line = (* frame).ptr<uint8_t>(y);
@@ -89,31 +133,32 @@ void __explore (Mat * frame, int x, int y, uint8_t * foundDirections, uint8_t * 
     if (line[x] == 0) return;
     //TODO: Limit at 3 or 4, inline once finalized
     //If we've found n colors and this would be n + 1, look no further
-    uint8_t tmp = 1 << line[x] | * foundDirections;
+    uint8_t tmp = 1 << line[x] | cluster->foundDirections;
     if (hammingWeight(tmp) == 3) return; //1-based!
-    * foundDirections = tmp;
+    cluster->foundDirections = tmp;
+    cluster->directions->push_back(line[x]);
+    cluster->mass++;
     line[x] = 0;
     //Only for visualization
     Vec3b * vis_line = (* visualization).ptr<Vec3b>(y);
-    setRandomColor(&vis_line[x], clusterNumber);
+    setColor(&vis_line[x], cluster->color);
     //Proceed left and right first as the memory addresses are sequencial
     //Pass the current line if we're working on the same line
-    __explore(frame, x - 1, y, foundDirections, line, visualization, clusterNumber);
-    __explore(frame, x + 1, y, foundDirections, line, visualization, clusterNumber);
-    __explore(frame, x, y - 1, foundDirections, NULL, visualization, clusterNumber);
-    __explore(frame, x, y + 1, foundDirections, NULL, visualization, clusterNumber);
+    __explore(frame, x - 1, y, cluster, line, visualization);
+    __explore(frame, x + 1, y, cluster, line, visualization);
+    __explore(frame, x, y - 1, cluster, NULL, visualization);
+    __explore(frame, x, y + 1, cluster, NULL, visualization);
     //These four have high probability of returning right away due to previous steps, keep at end for tail call optimization
-    __explore(frame, x - 1, y - 1, foundDirections, NULL, visualization, clusterNumber);
-    __explore(frame, x + 1, y - 1, foundDirections, NULL, visualization, clusterNumber);
-    __explore(frame, x - 1, y + 1, foundDirections, NULL, visualization, clusterNumber);
-    __explore(frame, x + 1, y + 1, foundDirections, NULL, visualization, clusterNumber);
+    __explore(frame, x - 1, y - 1, cluster, NULL, visualization);
+    __explore(frame, x + 1, y - 1, cluster, NULL, visualization);
+    __explore(frame, x - 1, y + 1, cluster, NULL, visualization);
+    __explore(frame, x + 1, y + 1, cluster, NULL, visualization);
 }
 
-//TODO: Add angles adding and count for average angle
-void exploreNeighbours (Mat * frame, int x, int y, Mat * visualization, int clusterNumber) {
+void exploreNeighbours (Mat * frame, int x, int y, Cluster * cluster, Mat * clustersFrame, Mat * visualization) {
     //Set bits for found data
-    uint8_t * foundDirections = new uint8_t(0);
-    __explore(frame, x, y, foundDirections, NULL, visualization, clusterNumber);
+    __explore(frame, x, y, cluster, NULL, visualization);
+    cluster->averageAngle = findAverageAngle(cluster);
     return;
 }
 
@@ -123,7 +168,7 @@ int main(int argc, const char * argv[]) {
     Mat originalFrame, frame1, frame2;
     //Clustering kernels
     Mat frame_h, frame_dd, frame_v, frame_du;
-    Mat directions, directionsDemo, clusters, clustersDemo, output;
+    Mat directions, directionsDemo, clustersFrame, clustersDemo, output;
     //Discriminate diagonals
     float coef = 0.85;
     float
@@ -149,7 +194,7 @@ int main(int argc, const char * argv[]) {
         originalFrame.copyTo(frame1);
         directions = Mat(frame1.rows, frame1.cols, CV_8U, uint8_t(0));
         directionsDemo = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
-        clusters = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
+        clustersFrame = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
         clustersDemo = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
         
         frame1.convertTo(frame1, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
@@ -183,7 +228,7 @@ int main(int argc, const char * argv[]) {
             float * p_du = frame_du.ptr<float>(y);
             for (int x = 0; x < directions.cols; ++x) {
                 //If no edge exists, move on
-                if (* (p_h + x) + * (p_dd + x) + * (p_v + x) + * (p_du + x) == 0.0) continue;
+                if (* (p_h + x) == 0.0 && * (p_dd + x) == 0.0 && * (p_v + x) == 0.0 && * (p_du + x) == 0.0) continue;
                 //Otherwise assign direction by finding the strongest candidate
                 int n = getMaxIndex(p_h + x, p_dd + x, p_v + x, p_du + x);
                 //http://graphicdesign.stackexchange.com/questions/3682/where-can-i-find-a-large-palette-set-of-contrasting-colors-for-coloring-many-d
@@ -195,23 +240,26 @@ int main(int argc, const char * argv[]) {
         
         //Cluster data
         //TODO: Add intermediate mapping generating in here?
-        int clusterCount = 0;
+        std::vector<Cluster *> clusters = std::vector<Cluster *>();
         for (int y = 0; y < directions.rows; ++y) {
             uint8_t * p_in = directions.ptr<uint8_t>(y);
             for (int x = 0; x < directions.cols; ++x) {
                 if (p_in[x] != 0) {
-                    exploreNeighbours(&directions, x, y, &clustersDemo, clusterCount);
-                    clusterCount++;
+                    Cluster * cluster = new Cluster(clusters.size());
+                    cluster->point.x = x;
+                    cluster->point.y = y;
+                    exploreNeighbours(&directions, x, y, cluster, &clustersFrame, &clustersDemo);
+                    //printf("%f\n", cluster->averageAngle);
+                    clusters.push_back(cluster);
                 }
             }
         }
-        printf("clusters: %d\n", clusterCount);
+        printf("clusters: %lu\n", clusters.size());
         
         add(originalFrame, clustersDemo, clustersDemo);
         fps = fpsCounter.Get();
         if (fps > 0) ShowText(clustersDemo, std::to_string(fps));
         imshow("edges", clustersDemo);
-        while (wait());
     }
     return 0;
 }
