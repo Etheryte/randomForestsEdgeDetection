@@ -39,3 +39,41 @@ void ShowText(cv::Mat mat, const std::string str, float top) {
 void ShowText(cv::Mat mat, const std::string str) {
     ShowText(mat, str, 10);
 }
+
+void setColor (Vec3b * pixel, float b, float g, float r) {
+    pixel[0][0] = b;
+    pixel[0][1] = g;
+    pixel[0][2] = r;
+}
+
+void setColor (Vec3b * pixel, Vec3b color) {
+    pixel[0][0] = color[0];
+    pixel[0][1] = color[1];
+    pixel[0][2] = color[2];
+}
+
+void setRandomColor (Vec3b * pixel, int seed) {
+    //Used for random colors
+    srand(seed);
+    float b = rand() % 255 + 1;
+    float g = rand() % 255 + 1;
+    float r = rand() % 255 + 1;
+    /*b = 255;
+    g = 255;
+    r = 255;*/
+    pixel[0][0] = b;
+    pixel[0][1] = g;
+    pixel[0][2] = r;
+}
+
+Vec3b getRandomColor (int seed) {
+    Vec3b color;
+    srand(seed);
+    color[0] = rand() % 255 + 1;
+    color[1] = rand() % 255 + 1;
+    color[2] = rand() % 255 + 1;
+    /*color[0] = 255;
+    color[1] = 255;
+    color[2] = 255;*/
+    return color;
+}
