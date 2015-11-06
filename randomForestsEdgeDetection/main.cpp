@@ -24,17 +24,14 @@
 using namespace cv;
 using namespace cv::ximgproc;
 
-
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
     Mat originalFrame, frame1, frame2;
     Mat roberts1, roberts2;
     //Clustering kernels
-    Mat directions, directionsDemo, clustersFrame, clustersDemo, output;
+    Mat directions, directionsMask, directionsDemo, clustersFrame, clustersDemo, output;
     
-    //horizontal = red; diagonal down = green; vertical = blue; diagonal up = yellow
-    Vec3b colors[] = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}};
     FpsCounter fpsCounter = FpsCounter();
     int fps;
     VideoCapture cap;
@@ -52,14 +49,14 @@ int main(int argc, const char * argv[]) {
         
         //Get weighed directions
         float thresh = 0.08;
-        directions = getDirections(&frame2, thresh, &directionsDemo, colors);
+        directions = getDirections(&frame2, thresh, &directionsDemo);
         
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
         float minClusterMass = 10;
-        float maxClusterMass = 250;
+        float maxClusterMass = 1000;
         std::vector<Cluster *> clusters = std::vector<Cluster *>();
-        clustersFrame = clusterDirections(&directions, &frame2, minClusterMass, maxClusterMass, &clustersDemo, &clusters);
+        clustersFrame = clusterDirections(&directions, &frame2, thresh, minClusterMass, maxClusterMass, &clustersDemo, &clusters);
         
         //Log info
         printf("clusters:%3lu ", clusters.size());
@@ -75,6 +72,15 @@ int main(int argc, const char * argv[]) {
         //Scale up for easier visual inspection
         resize(clustersDemo, clustersDemo, Size(640, 360));
         if (fps > 0) ShowText(clustersDemo, std::to_string(fps));
+        
+        /*Direction quantization bug test
+        Point2i start = Point2i(40, 40);
+        Point2i end = Point2i(start);
+        float rad = 0.75 * M_PI;
+        end.x += 20 * cos(-0.25 * M_PI * quantizeDirection(rad));
+        end.y += 20 * sin(-0.25 * M_PI * quantizeDirection(rad));
+        line(clustersDemo, start, end, Scalar(255,255,255));*/
+        
         imshow("edges", clustersDemo);
         while(wait());
     }

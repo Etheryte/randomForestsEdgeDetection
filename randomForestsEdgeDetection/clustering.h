@@ -43,8 +43,8 @@ void hysteresis(Mat * input, float lowThresh, float highThresh, Mat * output);
 
 int quantizeDirection(float radians);
 
-Mat getDirections(Mat * input, float thresh, Mat * visualization, Vec3b colors[]);
+Mat getDirections(Mat * input, float thresh, Mat * visualization);
 
-Mat clusterDirections(Mat * input, Mat * weights, float minClusterMass, float maxClusterMass, Mat * visualization, std::vector<Cluster *> * clustersOut);
+Mat clusterDirections(Mat * input, Mat * weights, float thresh, float minClusterMass, float maxClusterMass, Mat * visualization, std::vector<Cluster *> * clustersOut);
 
 #endif /* defined(__randomForestsEdgeDetection__clustering__) */
