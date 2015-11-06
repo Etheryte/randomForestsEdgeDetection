@@ -29,7 +29,7 @@ int main(int argc, const char * argv[]) {
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
     Mat originalFrame, frame, edges;
     //Clustering kernels
-    Mat directions, directionsDemo, clustersFrame, clustersDemo;
+    Mat directionsDemo, clustersFrame, clustersDemo;
     
     FpsCounter fpsCounter = FpsCounter();
     int fps;
@@ -55,7 +55,6 @@ int main(int argc, const char * argv[]) {
         //Get weighed directions
         clustering.newDatasource(&edges);
         clustering.computeDirections(&directionsDemo);
-        directions = clustering.getDirections();
         
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
@@ -74,16 +73,8 @@ int main(int argc, const char * argv[]) {
         //add(originalFrame, clustersDemo, clustersDemo);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
-        resize(clustersDemo, clustersDemo, Size(640, 360));
+        resize(clustersDemo, 2);
         if (fps > 0) ShowText(clustersDemo, std::to_string(fps));
-        
-        /*Direction quantization bug test
-        Point2i start = Point2i(40, 40);
-        Point2i end = Point2i(start);
-        float rad = 0.75 * M_PI;
-        end.x += 20 * cos(-0.25 * M_PI * quantizeDirection(rad));
-        end.y += 20 * sin(-0.25 * M_PI * quantizeDirection(rad));
-        line(clustersDemo, start, end, Scalar(255,255,255));*/
         
         imshow("edges", clustersDemo);
         while(wait());

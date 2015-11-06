@@ -90,6 +90,20 @@ int hammingWeight (uint8_t x) {
     return x;
 };
 
+void resize(Mat frame, float factor) {
+    Size oldSize = frame.size();
+    Size newSize = Size(oldSize.width * factor, oldSize.height * factor);
+    resize(frame, frame, newSize);
+}
+
+
+
+
+
+
+
+
+
 
 
 
