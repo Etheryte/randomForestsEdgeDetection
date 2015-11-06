@@ -28,5 +28,7 @@ void setColor (Vec3b * pixel, float b, float g, float r);
 void setColor (Vec3b * pixel, Vec3b color);
 void setRandomColor (Vec3b * pixel, int seed);
 Vec3b getRandomColor (int seed);
+Vec3b roughOpacity(Vec3b color, float opacity);
+int hammingWeight (uint8_t x);
 
 #endif /* defined(__randomForestsEdgeDetection__util__) */

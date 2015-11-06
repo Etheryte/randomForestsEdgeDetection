@@ -25,26 +25,26 @@ using namespace cv::ximgproc;
 
 class Cluster;
 
-int getMaxIndex (float * val0, float * val1, float * val2, float * val3);
-
-bool outOfBounds (Mat * frame, int x, int y);
-
-int hammingWeight (uint8_t x);
-
-float findAverageAngle (Cluster * cluster);
-
-void __explore (Mat * input, int x, int y, Cluster * cluster, uint8_t * line, Mat * visualization);
-
-void exploreNeighbours (Mat * input, int x, int y, Cluster * cluster, Mat * clustersFrame, Mat * visualization);
-
-void __hysteresis(Mat * input, int x, int y, float lowThresh, float * inputLine, float * outputLine, Mat * output);
-
-void hysteresis(Mat * input, float lowThresh, float highThresh, Mat * output);
-
-int quantizeDirection(float radians);
-
-Mat getDirections(Mat * input, float thresh, Mat * visualization);
-
-Mat clusterDirections(Mat * input, Mat * weights, float thresh, float minClusterMass, float maxClusterMass, Mat * visualization, std::vector<Cluster *> * clustersOut);
+class ClusteringEngine {
+    float thresh;
+    std::vector<Vec3b> colors;
+    Mat directions;
+    Mat edges;
+    std::vector<Cluster *> clusters;
+    float minClusterMass;
+    float maxClusterMass;
+    
+    bool outOfBounds(Mat * frame, int x, int y);
+    int quantizeDirection(float radians);
+    void clusterNeighbours (int x, int y, Cluster * cluster, float * p_directions, float * p_edges, Mat * visualization);
+public:
+    Mat getDirections();
+    std::vector<Cluster *> getClusters();
+    void newDatasource(Mat * edges);
+    void computeDirections();
+    void computeDirections(Mat * visualization);
+    Mat computeClusters(Mat * visualization);
+    ClusteringEngine (float thresh, float minClusterMass, float maxClusterMass);
+};
 
 #endif /* defined(__randomForestsEdgeDetection__clustering__) */

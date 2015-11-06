@@ -77,3 +77,21 @@ Vec3b getRandomColor (int seed) {
     color[2] = 255;*/
     return color;
 }
+
+Vec3b roughOpacity(Vec3b color, float opacity) {
+    opacity = fmin(opacity, 1.0);
+    return Vec3b({static_cast<unsigned char>(color[0] * opacity), static_cast<unsigned char>(color[1] * opacity), static_cast<unsigned char>(color[2] * opacity)});
+}
+
+int hammingWeight (uint8_t x) {
+    x -= (x >> 1) & 0x55;
+    x = (x & 0x33) + ((x >> 2) & 0x33);
+    x = (x + (x >> 4)) & 0x0f;
+    return x;
+};
+
+
+
+
+
+

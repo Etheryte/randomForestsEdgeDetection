@@ -27,10 +27,9 @@ using namespace cv::ximgproc;
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame1, frame2;
-    Mat roberts1, roberts2;
+    Mat originalFrame, frame, edges;
     //Clustering kernels
-    Mat directions, directionsMask, directionsDemo, clustersFrame, clustersDemo, output;
+    Mat directions, directionsDemo, clustersFrame, clustersDemo;
     
     FpsCounter fpsCounter = FpsCounter();
     int fps;
@@ -38,25 +37,30 @@ int main(int argc, const char * argv[]) {
     cap.open(0);
     assert(cap.isOpened());
     
+    float thresh = 0.08;
+    float minClusterMass = 10;
+    float maxClusterMass = 1000;
+    ClusteringEngine clustering = ClusteringEngine(thresh, minClusterMass, maxClusterMass);
+    std::vector<Cluster *> clusters;
+    
     while (waitEsc()) {
         originalFrame = GetFrame(cap);
-        originalFrame.copyTo(frame1);
-        directionsDemo = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
-        clustersDemo = Mat(frame1.rows, frame1.cols, CV_8UC3, uint8_t(0));
+        originalFrame.copyTo(frame);
+        directionsDemo = Mat(frame.rows, frame.cols, CV_8UC3, uint8_t(0));
+        clustersDemo = Mat(frame.rows, frame.cols, CV_8UC3, uint8_t(0));
         
-        frame1.convertTo(frame1, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
-        detector->detectEdges(frame1, frame2);
+        frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
+        detector->detectEdges(frame, edges);
         
         //Get weighed directions
-        float thresh = 0.08;
-        directions = getDirections(&frame2, thresh, &directionsDemo);
+        clustering.newDatasource(&edges);
+        clustering.computeDirections(&directionsDemo);
+        directions = clustering.getDirections();
         
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
-        float minClusterMass = 10;
-        float maxClusterMass = 1000;
-        std::vector<Cluster *> clusters = std::vector<Cluster *>();
-        clustersFrame = clusterDirections(&directions, &frame2, thresh, minClusterMass, maxClusterMass, &clustersDemo, &clusters);
+        clustersFrame = clustering.computeClusters(&clustersDemo);
+        clusters = clustering.getClusters();
         
         //Log info
         printf("clusters:%3lu ", clusters.size());
