@@ -26,25 +26,27 @@ using namespace cv::ximgproc;
 class Cluster;
 
 class ClusteringEngine {
-    float thresh;
     std::vector<Vec3b> colors;
     Mat directions;
     Mat edges;
+    Mat clusterData;
     std::vector<Cluster *> clusters;
     float minClusterMass;
     float maxClusterMass;
     
     bool outOfBounds(Mat * frame, int x, int y);
     int quantizeDirection(float radians);
-    void clusterNeighbours (int x, int y, Cluster * cluster, float * p_directions, float * p_edges, Mat * visualization);
+    void clusterNeighbours (int x, int y, Cluster * cluster, float * p_directions, float * p_edges, long * p_clusterData);
 public:
     Mat getDirections();
     std::vector<Cluster *> getClusters();
     void newDatasource(Mat * edges);
     void computeDirections();
-    void computeDirections(Mat * visualization);
-    Mat computeClusters(Mat * visualization);
-    ClusteringEngine (float thresh, float minClusterMass, float maxClusterMass);
+    void visualizeDirections(Mat * visualization);
+    void computeClusters();
+    void visualizeClusters(Mat * visualization);
+    void clear();
+    ClusteringEngine (float minClusterMass, float maxClusterMass);
 };
 
 #endif /* defined(__randomForestsEdgeDetection__clustering__) */

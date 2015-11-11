@@ -11,6 +11,7 @@
 		7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2A1BDA92B2001F1C3E /* camera.cpp */; };
 		7A4F8F2F1BDBC0F0001F1C3E /* fps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2D1BDBC0F0001F1C3E /* fps.cpp */; };
 		7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F301BDBC7CD001F1C3E /* util.cpp */; };
+		7A6F98321BF006BA00D01D84 /* thinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A6F98301BF006BA00D01D84 /* thinning.cpp */; };
 		7ADA249A1BE2C2C3006F9BC4 /* clustering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */; };
 		7ADB002B1BED05C60044BAD2 /* TODO.md in Sources */ = {isa = PBXBuildFile; fileRef = 7ADB002A1BED05C60044BAD2 /* TODO.md */; };
 /* End PBXBuildFile section */
@@ -36,6 +37,8 @@
 		7A4F8F2E1BDBC0F0001F1C3E /* fps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fps.h; sourceTree = "<group>"; };
 		7A4F8F301BDBC7CD001F1C3E /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
 		7A4F8F311BDBC7CD001F1C3E /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		7A6F98301BF006BA00D01D84 /* thinning.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thinning.cpp; sourceTree = "<group>"; };
+		7A6F98311BF006BA00D01D84 /* thinning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = thinning.h; sourceTree = "<group>"; };
 		7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clustering.cpp; sourceTree = "<group>"; };
 		7ADA24991BE2C2C3006F9BC4 /* clustering.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clustering.h; sourceTree = "<group>"; };
 		7ADB002A1BED05C60044BAD2 /* TODO.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = TODO.md; path = randomForestsEdgeDetection/TODO.md; sourceTree = "<group>"; };
@@ -81,6 +84,8 @@
 				7A4F8F311BDBC7CD001F1C3E /* util.h */,
 				7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */,
 				7ADA24991BE2C2C3006F9BC4 /* clustering.h */,
+				7A6F98301BF006BA00D01D84 /* thinning.cpp */,
+				7A6F98311BF006BA00D01D84 /* thinning.h */,
 			);
 			path = randomForestsEdgeDetection;
 			sourceTree = "<group>";
@@ -143,6 +148,7 @@
 			files = (
 				7ADB002B1BED05C60044BAD2 /* TODO.md in Sources */,
 				7A4F8F2F1BDBC0F0001F1C3E /* fps.cpp in Sources */,
+				7A6F98321BF006BA00D01D84 /* thinning.cpp in Sources */,
 				7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */,
 				7A4F8F241BDA9106001F1C3E /* main.cpp in Sources */,
 				7ADA249A1BE2C2C3006F9BC4 /* clustering.cpp in Sources */,

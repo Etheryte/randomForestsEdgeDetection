@@ -17,6 +17,7 @@
 #include "camera.h"
 #include "fps.h"
 #include "clustering.h"
+#include "thinning.h"
 
 #include <assert.h>
 #include <time.h>
@@ -27,9 +28,9 @@ using namespace cv::ximgproc;
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame, edges;
+    Mat originalFrame, frame, edges, thresholded;
     //Clustering kernels
-    Mat directionsDemo, clustersFrame, clustersDemo;
+    Mat directionsDemo, clustersFrame, visualization;
     
     FpsCounter fpsCounter = FpsCounter();
     int fps;
@@ -40,26 +41,41 @@ int main(int argc, const char * argv[]) {
     float thresh = 0.08;
     float minClusterMass = 10;
     float maxClusterMass = 1000;
-    ClusteringEngine clustering = ClusteringEngine(thresh, minClusterMass, maxClusterMass);
+    ClusteringEngine clustering = ClusteringEngine(minClusterMass, maxClusterMass);
     std::vector<Cluster *> clusters;
     
     while (waitEsc()) {
+        
         originalFrame = GetFrame(cap);
         originalFrame.copyTo(frame);
-        directionsDemo = Mat(frame.rows, frame.cols, CV_8UC3, uint8_t(0));
-        clustersDemo = Mat(frame.rows, frame.cols, CV_8UC3, uint8_t(0));
         
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
+        //Clear up for a new iteration and go
+        detector->clear();
         detector->detectEdges(frame, edges);
+        threshold(edges, thresholded, thresh, 1.0, THRESH_TOZERO);
+        
+        /* Thinning test
+        threshold(edges, thresholded, thresh, 255.0, THRESH_BINARY);
+        Mat bw2, bw;
+        thresholded.convertTo(bw2, CV_8UC1);
+        threshold(bw2, bw, 10, 255, CV_THRESH_BINARY);
+        thinning(bw, bw);
+        if (fps > 0) ShowText(bw, std::to_string(fps));
+        imshow("", bw);
+        continue;
+         */
         
         //Get weighed directions
-        clustering.newDatasource(&edges);
-        clustering.computeDirections(&directionsDemo);
+        clustering.newDatasource(&thresholded);
+        clustering.computeDirections();
+        clustering.visualizeDirections(&visualization);
         
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
-        clustersFrame = clustering.computeClusters(&clustersDemo);
+        clustering.computeClusters();
         clusters = clustering.getClusters();
+        clustering.visualizeClusters(&visualization);
         
         //Log info
         printf("clusters:%3lu ", clusters.size());
@@ -69,15 +85,16 @@ int main(int argc, const char * argv[]) {
         //Create intermediate mapping to efficiently find clusters that lie in a given candidate
         //OR would it be faster to simply iterate over all clusters and check if they're contained? Usually N ~< 100.
         
+        //Free up ClusterEngine memory for a new iteration
+        clustering.clear();
         
         //add(originalFrame, clustersDemo, clustersDemo);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
-        resize(clustersDemo, 2);
-        if (fps > 0) ShowText(clustersDemo, std::to_string(fps));
+        resize(visualization, 2);
+        if (fps > 0) ShowText(visualization, std::to_string(fps));
         
-        imshow("edges", clustersDemo);
-        while(wait());
+        imshow("edges", visualization);
     }
     return 0;
 }

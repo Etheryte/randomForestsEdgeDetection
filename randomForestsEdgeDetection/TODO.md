@@ -1,8 +1,11 @@
 
 
-In clustering: different threshold based on whether the direction is similar as the last one?
+Finish implementing edge boxes?
 
-Turn all of clustering into a reasonable class
+
+
+
+In clustering: different threshold based on whether the direction is similar as the last one?
 
 Find joint points / crossovers: how to find?
 
