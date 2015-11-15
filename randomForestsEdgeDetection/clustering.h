@@ -36,11 +36,13 @@ class ClusteringEngine {
     
     bool outOfBounds(Mat * frame, int x, int y);
     int quantizeDirection(float radians);
-    void clusterNeighbours (int x, int y, Cluster * cluster, float * p_directions, float * p_edges, long * p_clusterData);
+    void followEdge(int x, int y, float previousDirection, Mat * output);
+    void clusterNeighbours (int x, int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
     Mat getDirections();
     std::vector<Cluster *> getClusters();
     void newDatasource(Mat * edges);
+    void directionalEdges();
     void computeDirections();
     void visualizeDirections(Mat * visualization);
     void computeClusters();

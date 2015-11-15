@@ -28,7 +28,7 @@ using namespace cv::ximgproc;
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame, edges, thresholded;
+    Mat originalFrame, frame, edges;
     //Clustering kernels
     Mat directionsDemo, clustersFrame, visualization;
     
@@ -39,7 +39,7 @@ int main(int argc, const char * argv[]) {
     assert(cap.isOpened());
     
     float thresh = 0.08;
-    float minClusterMass = 10;
+    float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(minClusterMass, maxClusterMass);
     std::vector<Cluster *> clusters;
@@ -53,8 +53,9 @@ int main(int argc, const char * argv[]) {
         //Clear up for a new iteration and go
         detector->clear();
         detector->detectEdges(frame, edges);
-        threshold(edges, thresholded, thresh, 1.0, THRESH_TOZERO);
-        
+
+        threshold(edges, edges, thresh, 1.0, THRESH_TOZERO);
+
         /* Thinning test
         threshold(edges, thresholded, thresh, 255.0, THRESH_BINARY);
         Mat bw2, bw;
@@ -67,7 +68,7 @@ int main(int argc, const char * argv[]) {
          */
         
         //Get weighed directions
-        clustering.newDatasource(&thresholded);
+        clustering.newDatasource(&edges);
         clustering.computeDirections();
         clustering.visualizeDirections(&visualization);
         
@@ -91,10 +92,11 @@ int main(int argc, const char * argv[]) {
         //add(originalFrame, clustersDemo, clustersDemo);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
-        resize(visualization, 2);
+        //resize(visualization, 2);
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
         imshow("edges", visualization);
+        while(wait());
     }
     return 0;
 }
