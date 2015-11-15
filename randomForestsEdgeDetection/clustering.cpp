@@ -17,8 +17,6 @@ public:
     long uid;
     float curvature;
     Vec3b color;
-    //TODO: Obsolete?
-    uint8_t foundDirections;
     //Naíve uncontainment check: if any of these is out of bounds, then the cluster is not fully contained by the viewport
     unsigned int maxX;
     unsigned int minX;
@@ -26,23 +24,18 @@ public:
     unsigned int minY;
     //A single point from the cluster, randomity doesn't matter to us here
     Point2i point;
-    
-    //TODO: Obsolete?
-    //Used only during calculation
-    std::vector<float> directions;
+
     
     Cluster (unsigned long id) {
         mass = 0.0;
         uid = id;
         curvature = 0.0;
-        foundDirections = 0;
         color = getRandomColor((int)rand());//id);
         point = Point2i();
         maxX = 0;
         minX = INT_MAX;
         maxY = 0;
         minY = INT_MAX;
-        directions = std::vector<float>();
     }
 };
 
@@ -146,15 +139,10 @@ void ClusteringEngine::clusterNeighbours (int x, int y, Cluster * cluster, float
     //TODO: Use thresh here once all turns into a class?
     if (p_edges[x] < 0.08) return;
     
-    //If we've found adjacent n colors and this would be n + 1, look no further
     float direction = p_directions[x];
     if (originalDirection == UNDEFINED_DIRECTION) {
         originalDirection = direction;
     }
-    //Quantized direction termination
-    /*int quantizedDirection = quantizeDirection(direction);
-     uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
-     if (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010) return;*/
     
     //Degree-based cluster termination
     float delta = fabs(fmod(direction - originalDirection, M_PI));
@@ -165,19 +153,12 @@ void ClusteringEngine::clusterNeighbours (int x, int y, Cluster * cluster, float
     //Do we want to update edges based on this approach or do a different pass?
     if (previousDirection != UNDEFINED_DIRECTION) {
         float delta = fabs(fmod(previousDirection - direction, M_PI));
-        //if (delta > M_PI / 4.0) return;
-        //if (delta > M_PI / 8.0 && p_edges[x] < 0.25) return;
-        //TODO: Is this a better approach to terminating clusters?
         //Relation-based cluster termination
         float modifier = 1;
-        printf("%f\n", delta);
         if ((modifier * delta) / (M_PI / 4.0) > p_edges[x]) return;
         //Update largest found deviation from direction
         cluster->curvature = fmaxf(delta, cluster->curvature);
     }
-    
-    //cluster->foundDirections = tmp;
-    cluster->directions.push_back(p_directions[x]);
     
     //Do we want mass as integer or not?
     cluster->mass += 1;//weightsLine[x];
@@ -192,10 +173,7 @@ void ClusteringEngine::clusterNeighbours (int x, int y, Cluster * cluster, float
     p_edges[x] = 0;
     p_clusterData[x] = cluster->uid;
     
-    //TODO: Different threshold based on whether the direction is similar as the last one?
-    
     //Proceed left and right first as the memory addresses are sequencial
-    //Pass the current line if we're working on the same line
     clusterNeighbours(x - 1, y, cluster, originalDirection, direction);
     clusterNeighbours(x + 1, y, cluster, originalDirection, direction);
     clusterNeighbours(x, y - 1, cluster, originalDirection, direction);
@@ -219,9 +197,8 @@ void ClusteringEngine::computeClusters() {
                 cluster->point.x = x;
                 cluster->point.y = y;
                 clusterNeighbours(x, y, cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
-                //No longer needed, free it up
-                cluster->directions.clear();
                 if (cluster->mass > minClusterMass) {
+                    printf("%f\n", cluster->curvature);
                     clusters.push_back(cluster);
                     
                     if (clusters.size() >= 30) {
