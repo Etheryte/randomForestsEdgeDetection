@@ -17,6 +17,7 @@
 #include <opencv2/ximgproc.hpp>
 
 #include <math.h>
+#include <algorithm>
 
 #include "util.h"
 
@@ -37,6 +38,7 @@ class ClusteringEngine {
     bool outOfBounds(Mat * frame, int x, int y);
     int quantizeDirection(float radians);
     void followEdge(int x, int y, float previousDirection, Mat * output);
+    void solidifyCluster(int x, int y, float value);
     void clusterNeighbours (int x, int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
     Mat getDirections();
