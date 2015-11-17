@@ -42,7 +42,7 @@ int main(int argc, const char * argv[]) {
     float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(minClusterMass, maxClusterMass);
-    std::vector<Cluster *> clusters;
+    size_t clusterCount;
     
     while (waitEsc()) {
         
@@ -75,12 +75,12 @@ int main(int argc, const char * argv[]) {
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
         clustering.computeClusters();
-        clusters = clustering.getClusters();
+        clusterCount = clustering.size();
         clustering.visualizeClusters(&visualization);
         
         //Log info
-        printf("clusters:%3lu ", clusters.size());
-        for (int i = (int)sqrt(clusters.size()); i >= 0; i--) putchar('.');
+        printf("clusters:%3lu ", clusterCount);
+        for (int i = (int)sqrt(clusterCount); i >= 0; i--) putchar('.');
         putchar('\n');
         
         //Create intermediate mapping to efficiently find clusters that lie in a given candidate
@@ -97,7 +97,6 @@ int main(int argc, const char * argv[]) {
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
         imshow("edges", visualization);
-        while(wait());
     }
     return 0;
 }

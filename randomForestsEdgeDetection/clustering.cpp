@@ -16,13 +16,15 @@
 #define WHITE Vec3b(255,255,255)
 #define BLACK Vec3b(0,0,0)
 
+/*
+ GENERIC CLUSTER
+ */
+
 class Cluster {
 public:
     double mass;
     float uid;
     float curvature;
-    Vec3b color;
-    //TODO: Obsolete?
     uint8_t foundDirections;
     //Naíve uncontainment check: if any of these is out of bounds, then the cluster is not fully contained by the viewport
     unsigned int maxX;
@@ -33,7 +35,7 @@ public:
     unsigned int width;
     unsigned int height;
     Point2i center; //NB! This might not contain a data point
-    //A single point from the cluster, randomity doesn't matter to us here
+    //A single point included in the cluster, randomity doesn't matter to us here
     Point2i point;
     
     //Allow us to quickly check clusters against their uid
@@ -54,7 +56,6 @@ public:
         mass = 0.0;
         uid = id;
         curvature = 0.0;
-        color = getRandomColor((int)rand());//id);
         point = Point2i();
         maxX = 0;
         minX = INT_MAX;
@@ -63,17 +64,62 @@ public:
     }
 };
 
+/*
+ CLUSTER STORAGE
+ */
+
+ClusterStorage::ClusterStorage() {
+    clusters = std::vector<Cluster *>();
+    map = std::unordered_map<float, Cluster *>();
+};
+
+void ClusterStorage::clear() {
+    for (std::vector<Cluster *>::iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
+        delete *cluster;
+    }
+    clusters.clear();
+    for (auto it = map.begin(); it != map.end(); ++it) {
+        delete it->second;
+    }
+    map.clear();
+}
+
+void ClusterStorage::add(Cluster * cluster) {
+    clusters.push_back(cluster);
+    //map[cluster->uid] = cluster;
+}
+
+size_t ClusterStorage::size() {
+    return clusters.size();
+}
+
+std::vector<Cluster *>::iterator ClusterStorage::begin() {
+    return clusters.begin();
+}
+
+std::vector<Cluster *>::iterator ClusterStorage::end() {
+    return clusters.end();
+}
+
+Cluster * ClusterStorage::operator[](const size_t index) {
+    return clusters[index];
+}
+
+/*
+ CLUSTERING ENGINE
+ */
+
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
     Sobel(edges, frame_x, CV_32F, 1, 0);
     Sobel(edges, frame_y, CV_32F, 0, 1);
     
-    for (int y = 0; y < directions.rows; ++y) {
+    for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_edges = edges.ptr<float>(y);
         float * p_x  = frame_x.ptr<float>(y);
         float * p_y  = frame_y.ptr<float>(y);
         float * p_directions = directions.ptr<float>(y);
-        for (int x = 0; x < directions.cols; ++x) {
+        for (unsigned int x = 0; x < directions.cols; ++x) {
             if (p_edges[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
                 p_directions[x] = direction;
@@ -85,11 +131,11 @@ void ClusteringEngine::computeDirections() {
 void ClusteringEngine::visualizeDirections(Mat * visualization) {
     visualization->release();
     * visualization = Mat(edges.rows, edges.cols, CV_8UC3, uint8_t(0));
-    for (int y = 0; y < edges.rows; ++y) {
+    for (unsigned int y = 0; y < edges.rows; ++y) {
         float * p_directions = directions.ptr<float>(y);
         float * p_weights = edges.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (int x = 0; x < clusterData.cols; ++x) {
+        for (unsigned int x = 0; x < clusterData.cols; ++x) {
             if (p_weights[x] > 0) {
                 setColor(&p_visualization[x], colors[quantizeDirection(p_directions[x])]);
             }
@@ -111,14 +157,17 @@ int ClusteringEngine::quantizeDirection(float radians) {
     return -1;
 };
 
-void ClusteringEngine::clusterNeighbours (int x, int y, Cluster * cluster, float originalDirection, float previousDirection) {
+void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;
     if (outOfBounds(&directions, x, y)) return;
     float * p_directions = directions.ptr<float>(y);
     float * p_edges = edges.ptr<float>(y);
     float * p_clusterData = clusterData.ptr<float>(y);
     //This pixel already belongs to another cluster
-    //if (p_clusterData[x] <= 0) return;
+    if (p_clusterData[x] != UNDEFINED_CLUSTER) {
+        //TODO: Add this as a collision point
+        return;
+    }
     //TODO: Use thresh here once all turns into a class?
     if (p_edges[x] < 0.08) return;
     
@@ -162,14 +211,15 @@ void ClusteringEngine::clusterNeighbours (int x, int y, Cluster * cluster, float
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
     //Proceed left and right first as the memory addresses are sequencial
-    for (int _x = x - 1; _x <= x + 1; _x++) {
-        for (int _y = y - 1; _y <= y + 1; _y++) {
+    for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
+        for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
+            //Allow us to return early
             clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
 };
 
-void ClusteringEngine::solidifyCluster(int x, int y, float value) {
+void ClusteringEngine::solidifyCluster(unsigned int x, unsigned int y, float value) {
     if (value <= 0) return;
     if (outOfBounds(&clusterData, x, y)) return;
     float * p_clusterData = clusterData.ptr<float>(y);
@@ -178,27 +228,39 @@ void ClusteringEngine::solidifyCluster(int x, int y, float value) {
     } else {
         return;
     }
-    for (int _x = x - 1; _x <= x + 1; _x++) {
-        for (int _y = y - 1; _y <= y + 1; _y++) {
+    for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
+        for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
             solidifyCluster(_x, _y, value);
         }
     }
 }
 
+bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
+    //TODO: We need an average angle for a cluster after all?
+    //If cluster angle is similar + if angle between centers is similar to cluster angle, go looser the further the center distances
+    int x = a->center.x - b->center.x;
+    int y = a->center.y - b->center.y;
+    float h = hypotf(x, y);
+    printf("%f\n", h);
+    float o = atan2(y, x);
+    printf("%f\n\n", o);
+    return false;
+}
+
 void ClusteringEngine::computeClusters() {
-    Mat tmp = Mat::zeros(edges.size(), edges.type());
-    edges.copyTo(tmp);
-    for (int y = 0; y < directions.rows; ++y) {
+    /*Mat tmp = Mat::zeros(edges.size(), edges.type());
+    edges.copyTo(tmp);*/
+    for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_edges = edges.ptr<float>(y);
-        for (int x = 0; x < directions.cols; ++x) {
+        for (unsigned int x = 0; x < directions.cols; ++x) {
             if (p_edges[x] > 0) {
-                Cluster * cluster = new Cluster(clusters.size());
+                Cluster * cluster = new Cluster(storage.size());
                 cluster->point.x = x;
                 cluster->point.y = y;
                 clusterNeighbours(x, y, cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
                 //If the cluster is large enough, keep it
                 if (cluster->mass > minClusterMass) {
-                    clusters.push_back(cluster);
+                    storage.add(cluster);
                     solidifyCluster(cluster->point.x, cluster->point.y, cluster->uid);
                     cluster->computeGeometrics();
                 } else {
@@ -208,27 +270,27 @@ void ClusteringEngine::computeClusters() {
             }
         }
     }
-    edges.release();
-    tmp.copyTo(edges);
+    /*edges.release();
+    tmp.copyTo(edges);*/
     return;
 }
 
 void ClusteringEngine::visualizeClusters(Mat * visualization) {
     visualization->release();
     * visualization = Mat(edges.rows, edges.cols, CV_8UC3, uint8_t(0));
-    if (clusters.size() == 0) return;
+    if (storage.size() == 0) return;
     //Draw clusters
-    for (int y = 0; y < visualization->rows; ++y) {
+    for (unsigned int y = 0; y < visualization->rows; ++y) {
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         float * p_clusterData = clusterData.ptr<float>(y);
-        for (int x = 0; x < visualization->cols; ++x) {
+        for (unsigned int x = 0; x < visualization->cols; ++x) {
             if (p_clusterData[x] > 0.0) {
                 setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
             }
         }
     }
     //Draw bounding boxes
-    for (std::vector<Cluster *>::iterator it = this->clusters.begin(); it != this->clusters.end(); ++it) {
+    for (std::vector<Cluster *>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster * cluster = (* it);
         if (cluster->mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster->uid);
@@ -248,12 +310,13 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
             }
         }
     }
+    areSimilar(storage[0], storage[1]);
 }
 
 ClusteringEngine::ClusteringEngine(float minClusterMass, float maxClusterMass) {
     this->minClusterMass = minClusterMass;
     this->maxClusterMass = maxClusterMass;
-    this->clusters = std::vector<Cluster *>();
+    this->storage = ClusterStorage();
     //horizontal = red; diagonal down = green; vertical = blue; diagonal up = yellow
     this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}};
 };
@@ -266,11 +329,7 @@ void ClusteringEngine::newDatasource(Mat *edges) {
 }
 
 void ClusteringEngine::clear() {
-    //Free up clusters, say no to memory leaks
-    for (std::vector<Cluster *>::iterator cluster = this->clusters.begin(); cluster != this->clusters.end(); ++cluster) {
-        delete *cluster;
-    }
-    this->clusters.clear();
+    this->storage.clear();
     this->edges.release();
     this->directions.release();
     this->clusterData.release();
@@ -280,11 +339,9 @@ Mat ClusteringEngine::getDirections() {
     return this->directions;
 }
 
-std::vector<Cluster *> ClusteringEngine::getClusters() {
-    return this->clusters;
+size_t ClusteringEngine::size() {
+    return storage.size();
 }
-
-
 
 
 
