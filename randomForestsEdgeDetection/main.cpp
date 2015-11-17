@@ -96,7 +96,7 @@ int main(int argc, const char * argv[]) {
         //resize(visualization, 2);
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
-        //imshow("edges", visualization);
+        imshow("edges", visualization);
         while(wait());
     }
     return 0;
