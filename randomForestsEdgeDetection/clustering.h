@@ -25,18 +25,39 @@
 using namespace cv;
 using namespace cv::ximgproc;
 
-class Cluster;
+class Cluster {
+public:
+    double mass;
+    float uid;
+    float curvature;
+    uint8_t foundDirections;
+    //Naíve uncontainment check: if any of these is out of bounds, then the cluster is not fully contained by the viewport
+    unsigned int maxX;
+    unsigned int minX;
+    unsigned int maxY;
+    unsigned int minY;
+    //Based on above, give rough info about clusters
+    unsigned int width;
+    unsigned int height;
+    Point2i center; //NB! This might not contain a data point
+    //A single point included in the cluster, randomity doesn't matter to us here
+    Point2i point;
+    
+    void computeGeometrics ();
+    Cluster (unsigned long guid);
+};
+
 class ClusterStorage {
 public:
-    std::vector<Cluster *> clusters;
-    std::unordered_map<float, Cluster *> map;
+    std::vector<Cluster> clusters;
+    std::unordered_map<float, Cluster> map;
     void clear();
-    void add(Cluster *);
+    void add(Cluster);
     
     size_t size();
-    std::vector<Cluster *>::iterator begin();
-    std::vector<Cluster *>::iterator end();
-    Cluster * operator[](const size_t index);
+    std::vector<Cluster>::iterator begin();
+    std::vector<Cluster>::iterator end();
+    Cluster operator[](const size_t index);
     
     ClusterStorage();
 };

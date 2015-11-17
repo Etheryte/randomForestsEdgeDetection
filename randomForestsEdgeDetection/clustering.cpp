@@ -20,71 +20,41 @@
  GENERIC CLUSTER
  */
 
-class Cluster {
-public:
-    double mass;
-    float uid;
-    float curvature;
-    uint8_t foundDirections;
-    //Naíve uncontainment check: if any of these is out of bounds, then the cluster is not fully contained by the viewport
-    unsigned int maxX;
-    unsigned int minX;
-    unsigned int maxY;
-    unsigned int minY;
-    //Based on above, give rough info about clusters
-    unsigned int width;
-    unsigned int height;
-    Point2i center; //NB! This might not contain a data point
-    //A single point included in the cluster, randomity doesn't matter to us here
-    Point2i point;
-    
-    //Allow us to quickly check clusters against their uid
-    bool operator==(long comparedUid) {
-        return uid == comparedUid;
-    }
-    bool operator!=(long comparedUid) {
-        return !((* this).uid == comparedUid);
-    }
-    
-    void computeGeometrics () {
-        width = maxX - minX;
-        height = maxY - minY;
-        center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
-    }
-    
-    Cluster (unsigned long id) {
-        mass = 0.0;
-        uid = id;
-        curvature = 0.0;
-        point = Point2i();
-        maxX = 0;
-        minX = INT_MAX;
-        maxY = 0;
-        minY = INT_MAX;
-    }
-};
+void Cluster::computeGeometrics () {
+    width = maxX - minX;
+    height = maxY - minY;
+    center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
+}
+
+Cluster::Cluster (unsigned long guid) {
+    mass = 0.0;
+    uid = guid;
+    curvature = 0.0;
+    point = Point2i();
+    maxX = 0;
+    minX = INT_MAX;
+    maxY = 0;
+    minY = INT_MAX;
+}
 
 /*
  CLUSTER STORAGE
  */
 
 ClusterStorage::ClusterStorage() {
-    clusters = std::vector<Cluster *>();
-    map = std::unordered_map<float, Cluster *>();
+    clusters = std::vector<Cluster>();
+    map = std::unordered_map<float, Cluster>();
 };
 
 void ClusterStorage::clear() {
-    for (std::vector<Cluster *>::iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
-        delete *cluster;
-    }
+    /*for (std::vector<Cluster>::iterator cluster = clusters.begin(); cluster != clusters.end(); ++cluster) {
+     delete *cluster;
+     }*/
     clusters.clear();
-    for (auto it = map.begin(); it != map.end(); ++it) {
-        delete it->second;
-    }
     map.clear();
 }
 
-void ClusterStorage::add(Cluster * cluster) {
+void ClusterStorage::add(Cluster cluster) {
     clusters.push_back(cluster);
     //map[cluster->uid] = cluster;
 }
@@ -93,15 +63,15 @@ size_t ClusterStorage::size() {
     return clusters.size();
 }
 
-std::vector<Cluster *>::iterator ClusterStorage::begin() {
+std::vector<Cluster>::iterator ClusterStorage::begin() {
     return clusters.begin();
 }
 
-std::vector<Cluster *>::iterator ClusterStorage::end() {
+std::vector<Cluster>::iterator ClusterStorage::end() {
     return clusters.end();
 }
 
-Cluster * ClusterStorage::operator[](const size_t index) {
+Cluster ClusterStorage::operator[](const size_t index) {
     return clusters[index];
 }
 
@@ -249,29 +219,29 @@ bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
 
 void ClusteringEngine::computeClusters() {
     /*Mat tmp = Mat::zeros(edges.size(), edges.type());
-    edges.copyTo(tmp);*/
+     edges.copyTo(tmp);*/
     for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_edges = edges.ptr<float>(y);
         for (unsigned int x = 0; x < directions.cols; ++x) {
             if (p_edges[x] > 0) {
-                Cluster * cluster = new Cluster(storage.size());
-                cluster->point.x = x;
-                cluster->point.y = y;
-                clusterNeighbours(x, y, cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
+                Cluster cluster = Cluster(storage.size());
+                cluster.point.x = x;
+                cluster.point.y = y;
+                clusterNeighbours(x, y, &cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
                 //If the cluster is large enough, keep it
-                if (cluster->mass > minClusterMass) {
+                if (cluster.mass > minClusterMass) {
                     storage.add(cluster);
-                    solidifyCluster(cluster->point.x, cluster->point.y, cluster->uid);
-                    cluster->computeGeometrics();
+                    solidifyCluster(cluster.point.x, cluster.point.y, cluster.uid);
+                    cluster.computeGeometrics();
                 } else {
                     //TODO: Why isn't this working?
-                    solidifyCluster(cluster->point.x, cluster->point.y, UNDEFINED_CLUSTER);
+                    solidifyCluster(cluster.point.x, cluster.point.y, UNDEFINED_CLUSTER);
                 }
             }
         }
     }
     /*edges.release();
-    tmp.copyTo(edges);*/
+     tmp.copyTo(edges);*/
     return;
 }
 
@@ -290,27 +260,27 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         }
     }
     //Draw bounding boxes
-    for (std::vector<Cluster *>::iterator it = storage.begin(); it != storage.end(); ++it) {
-        Cluster * cluster = (* it);
-        if (cluster->mass > minClusterMass) {
-            Vec3b color = getRandomColor(cluster->uid);
+    for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
+        Cluster cluster = (* it);
+        if (cluster.mass > minClusterMass) {
+            Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?
             //printf("%f\n", cluster->curvature);
-            unsigned int w = cluster->width;
-            unsigned int h = cluster->height;
+            unsigned int w = cluster.width;
+            unsigned int h = cluster.height;
             if (false && (float)h / w > 10.0) {
-                line(* visualization, Point2i(cluster->minX, cluster->minY), Point2i(cluster->maxX, cluster->maxY), BLACK, 2.5);
-                line(* visualization, Point2i(cluster->minX, cluster->maxY), Point2i(cluster->maxX, cluster->minY), BLACK, 2.5);
-                line(* visualization, Point2i(cluster->minX, cluster->minY), Point2i(cluster->maxX, cluster->maxY), WHITE);
-                line(* visualization, Point2i(cluster->minX, cluster->maxY), Point2i(cluster->maxX, cluster->minY), WHITE);
-                rectangle(* visualization, Point2i(cluster->minX - 1, cluster->minY - 1), Point2i(cluster->maxX + 1, cluster->maxY + 1), BLACK);
-                rectangle(* visualization, Point2i(cluster->minX, cluster->minY), Point2i(cluster->maxX, cluster->maxY), WHITE);
+                line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), BLACK, 2.5);
+                line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), BLACK, 2.5);
+                line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);
+                line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), WHITE);
+                rectangle(* visualization, Point2i(cluster.minX - 1, cluster.minY - 1), Point2i(cluster.maxX + 1, cluster.maxY + 1), BLACK);
+                rectangle(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);
             } else {
-                rectangle(* visualization, Point(cluster->minX, cluster->minY), Point(cluster->maxX, cluster->maxY), color);
+                rectangle(* visualization, Point(cluster.minX, cluster.minY), Point(cluster.maxX, cluster.maxY), color);
             }
         }
     }
-    areSimilar(storage[0], storage[1]);
+    //areSimilar(storage[0], storage[1]);
 }
 
 ClusteringEngine::ClusteringEngine(float minClusterMass, float maxClusterMass) {
