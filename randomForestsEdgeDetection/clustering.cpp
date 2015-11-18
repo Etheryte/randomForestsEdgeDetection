@@ -16,14 +16,6 @@
 #define WHITE Vec3b(255,255,255)
 #define BLACK Vec3b(0,0,0)
 
-unsigned int min(unsigned int a, unsigned int b) {
-    return (a < b) ? a : b;
-}
-
-unsigned int max(unsigned int a, unsigned int b) {
-    return (a > b) ? a : b;
-}
-
 /*
  GENERIC CLUSTER
  */
@@ -154,10 +146,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     float * p_edges = edges.ptr<float>(y);
     float * p_clusterData = clusterData.ptr<float>(y);
     //This pixel already belongs to another cluster
-    if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-        //TODO: Add this as a collision point
-        return;
-    }
+    if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
     //TODO: Use thresh here once all turns into a class?
     if (p_edges[x] < 0.08) return;
     
@@ -165,35 +154,37 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     if (originalDirection == UNDEFINED_DIRECTION) {
         originalDirection = direction;
     }
+    //TODO: Do we want this at all? Tends to terminate clusters too early
     //Quantized direction termination
     int quantizedDirection = quantizeDirection(direction);
     uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
-    if (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010) return;
+    //if (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010) return;
     
     //Degree-based cluster termination
     float delta = fabs(fmod(direction - originalDirection, M_PI));
     if (delta > M_PI / 4.0) {
         return;
     }
-    
-    //Do we want to update edges based on this approach or do a different pass?
+
+    //Relation-based cluster termination
     if (previousDirection != UNDEFINED_DIRECTION) {
         float delta = fabs(fmod(previousDirection - direction, M_PI));
-        //Relation-based cluster termination
         float modifier = M_PI / 2.0;
         if ((modifier * delta) / (M_PI / 4.0) > p_edges[x]) return;
         //Update largest found deviation from direction
         cluster->curvature = fmaxf(delta, cluster->curvature);
     }
     
+    //cluster->foundDirections = tmp;
+    
     //Do we want mass as integer or not?
     cluster->mass += 1;//weightsLine[x];
     
     //Mark rough cluster bounds
-    cluster->maxX = max(cluster->maxX, x);
-    cluster->minX = min(cluster->minX, x);
-    cluster->maxY = max(cluster->maxY, y);
-    cluster->minY = min(cluster->minY, y);
+    cluster->maxX = MAX(cluster->maxX, x);
+    cluster->minX = MIN(cluster->minX, x);
+    cluster->maxY = MAX(cluster->maxY, y);
+    cluster->minY = MIN(cluster->minY, y);
     
     //Don't check this location again
     p_edges[x] = 0;
@@ -201,9 +192,8 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
     //Proceed left and right first as the memory addresses are sequencial
-    for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-        for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
-            //Allow us to return early
+    for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
+        for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
             clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
@@ -300,7 +290,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
-        if (cluster.mass > 2 * minClusterMass) {
+        if (cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?
             //printf("%f\n", cluster->curvature);
