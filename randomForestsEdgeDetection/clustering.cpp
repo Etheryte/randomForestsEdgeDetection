@@ -317,10 +317,6 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
             } else {
                 rectangle(* visualization, Point(cluster.minX, cluster.minY), Point(cluster.maxX, cluster.maxY), color);
             }
-            /*Point2i heightPoint = Point2i(cluster.maxX, cluster.minY + (cluster.maxY - cluster.minY) / 2.0);
-            Point2i widthPoint = Point2i(cluster.minX + (cluster.maxX - cluster.minX) / 2.0, cluster.maxY);
-            putText(* visualization, std::to_string(cluster.height), heightPoint, FONT_HERSHEY_COMPLEX_SMALL, 0.45, WHITE);
-            putText(* visualization, std::to_string(cluster.width), widthPoint, FONT_HERSHEY_COMPLEX_SMALL, 0.45, WHITE);*/
         }
     }
     //areSimilar(storage[0], storage[1]);
