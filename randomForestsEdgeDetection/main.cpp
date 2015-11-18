@@ -89,7 +89,6 @@ int main(int argc, const char * argv[]) {
         //Free up ClusterEngine memory for a new iteration
         clustering.clear();
         
-        originalFrame *= 0.5;
         //add(originalFrame, visualization, visualization);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
@@ -97,6 +96,7 @@ int main(int argc, const char * argv[]) {
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
         imshow("edges", visualization);
+        while(wait());
     }
     return 0;
 }

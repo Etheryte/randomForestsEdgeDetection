@@ -19,6 +19,8 @@
 #include <math.h>
 #include <algorithm>
 #include <unordered_map>
+#include <map>
+#include <utility>
 
 #include "util.h"
 
@@ -47,13 +49,25 @@ public:
     Cluster (unsigned long guid);
 };
 
+class ClusterCrossing {
+public:
+    //Do we need to keep multiple points or will one suffice?
+    float uidA;
+    float uidB;
+    Point2i point;
+    size_t count;
+    
+    ClusterCrossing(float _uidA, float _uidB, unsigned int x, unsigned int y);
+};
+
 class ClusterStorage {
 public:
     std::vector<Cluster> clusters;
-    std::unordered_map<float, Cluster> map;
+    std::unordered_map<float, Cluster *> hashmap;
+    std::map<std::pair<float, float>, ClusterCrossing> crossings;
+    
     void clear();
     void add(Cluster);
-    
     size_t size();
     std::vector<Cluster>::iterator begin();
     std::vector<Cluster>::iterator end();
@@ -71,7 +85,7 @@ class ClusteringEngine {
     float maxClusterMass;
     ClusterStorage storage;
     
-    bool outOfBounds(Mat * frame, int x, int y);
+    bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
     int quantizeDirection(float radians);
     void solidifyCluster(unsigned int x, unsigned int y, float value);
     void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
