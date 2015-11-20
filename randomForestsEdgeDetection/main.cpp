@@ -38,8 +38,8 @@ int main(int argc, const char * argv[]) {
     cap.open(0);
     assert(cap.isOpened());
     
-    float startThresh = 0.10;
-    float continueThresh = 0.05;
+    float startThresh = 0.16;
+    float continueThresh = 0.08;
     float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);

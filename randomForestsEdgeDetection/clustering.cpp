@@ -166,16 +166,15 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         originalDirection = direction;
     }
     
+    bool quantized = false;
     //Quantized creates more smaller clusters, degree-based creates larger ones but doesn't give good connections
     int quantizedDirection = quantizeDirection(direction);
     uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
-    //if (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010) return;
+    if (quantized && (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010)) return;
     
     //Absolute degree-based cluster termination
     float delta = fabs(fmod(direction - originalDirection, M_PI));
-    if (delta > M_PI / 4.0) {
-        return;
-    }
+    if (!quantized && delta > M_PI / 4.0) return;
     
     //Relative degree-based cluster termination
     if (previousDirection != UNDEFINED_DIRECTION) {
@@ -183,7 +182,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         float modifier = M_PI / 2.0;
         //If the pixel is very strong, don't care for direction
         //Do we want edges squared or not?
-        if ((modifier * delta) / (M_PI / 4.0) > p_edges[x]) {
+        if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edges[x]) {
             return;
         }
         //Update largest found deviation from direction
