@@ -38,10 +38,11 @@ int main(int argc, const char * argv[]) {
     cap.open(0);
     assert(cap.isOpened());
     
-    float thresh = 0.08;
+    float startThresh = 0.10;
+    float continueThresh = 0.05;
     float minClusterMass = 50;
     float maxClusterMass = 1000;
-    ClusteringEngine clustering = ClusteringEngine(minClusterMass, maxClusterMass);
+    ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
     size_t clusterCount;
     
     while (waitEsc()) {
@@ -53,24 +54,30 @@ int main(int argc, const char * argv[]) {
         //Clear up for a new iteration and go
         detector->clear();
         detector->detectEdges(frame, edges);
-
-        threshold(edges, edges, thresh, 1.0, THRESH_TOZERO);
-
+        
+        //threshold(edges, edges, thresh, 1.0, THRESH_TOZERO);
+        
         /* Thinning test
-        threshold(edges, thresholded, thresh, 255.0, THRESH_BINARY);
-        Mat bw2, bw;
-        thresholded.convertTo(bw2, CV_8UC1);
-        threshold(bw2, bw, 10, 255, CV_THRESH_BINARY);
-        thinning(bw, bw);
-        if (fps > 0) ShowText(bw, std::to_string(fps));
-        imshow("", bw);
-        continue;
+         threshold(edges, thresholded, thresh, 255.0, THRESH_BINARY);
+         Mat bw2, bw;
+         thresholded.convertTo(bw2, CV_8UC1);
+         threshold(bw2, bw, 10, 255, CV_THRESH_BINARY);
+         thinning(bw, bw);
+         if (fps > 0) ShowText(bw, std::to_string(fps));
+         imshow("", bw);
+         continue;
          */
         
         //Get weighed directions
         clustering.newDatasource(&edges);
         clustering.computeDirections();
         clustering.visualizeDirections(&visualization);
+        
+        if (false) {
+            imshow("", visualization);
+            while(wait());
+            continue;
+        }
         
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?

@@ -81,6 +81,9 @@ class ClusteringEngine {
     Mat directions;
     Mat edges;
     Mat clusterData;
+    Mat collisionData;
+    float startThresh;
+    float continueThresh;
     float minClusterMass;
     float maxClusterMass;
     ClusterStorage storage;
@@ -99,7 +102,7 @@ public:
     void computeClusters();
     void visualizeClusters(Mat * visualization);
     void clear();
-    ClusteringEngine(float minClusterMass, float maxClusterMass);
+    ClusteringEngine(float startThresh, float continueThresh, float minClusterMass, float maxClusterMass);
 };
 
 #endif /* defined(__randomForestsEdgeDetection__clustering__) */
