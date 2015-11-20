@@ -37,6 +37,7 @@ Cluster::Cluster (unsigned long guid) {
     minY = INT_MAX;
     width = 0;
     height = 0;
+    foundDirections = 0;
 }
 
 /*
@@ -108,9 +109,8 @@ void ClusteringEngine::computeDirections() {
             }
         }
     }
-    //Alternatively or also, find highest (nearby) value before starting clusters?
     //Unify outliers?
-    //If 5 neighbours are of same direction generic
+    //If 5 neighbours are of same direction generic?
     for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_directions = directions.ptr<float>(y);
         for (unsigned int x = 0; x < directions.cols; ++x) {
@@ -165,26 +165,17 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         originalDirection = direction;
     }
     
-    //Absolute degree-based cluster termination
-    float delta = fabs(fmod(direction - originalDirection, M_PI));
-    if (delta > M_PI / 4.0) {
-        return;
-    }
+    int quantizedDirection = quantizeDirection(direction);
+    uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
+    if (hammingWeight(tmp) == 3 || tmp == 0b0101 || tmp == 0b1010) return;
     
-    //Relative degree-based cluster termination
     if (previousDirection != UNDEFINED_DIRECTION) {
         float delta = fabs(fmod(previousDirection - direction, M_PI));
-        float modifier = M_PI / 2.0;
-        //If the pixel is very strong, don't care for direction
-        //Do we want edges squared or not?
-        if ((modifier * delta) / (M_PI / 4.0) > p_edges[x]) {
-            return;
-        }
         //Update largest found deviation from direction
         cluster->curvature = fmaxf(delta, cluster->curvature);
     }
     
-    //cluster->foundDirections = tmp;
+    cluster->foundDirections = tmp;
     
     //Do we want mass as integer or not?
     cluster->mass += 1;//weightsLine[x];
