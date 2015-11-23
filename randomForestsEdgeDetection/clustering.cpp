@@ -41,24 +41,13 @@ Cluster::Cluster (unsigned long guid) {
 }
 
 /*
- CLUSTER CROSSING
- */
-
-ClusterCrossing::ClusterCrossing(float _uidA, float _uidB, unsigned int x, unsigned int y) {
-    uidA = _uidA;
-    uidB = _uidB;
-    point = Point2i(x, y);
-    count = 0;
-}
-
-/*
  CLUSTER STORAGE
  */
 
 ClusterStorage::ClusterStorage() {
     clusters = std::vector<Cluster>();
     hashmap = std::unordered_map<float, Cluster *>();
-    crossings = std::map<std::pair<float, float>, ClusterCrossing>();
+    crossings = std::map<std::pair<float, float>, size_t>();
 };
 
 void ClusterStorage::clear() {
@@ -105,16 +94,25 @@ void ClusteringEngine::computeDirections() {
         for (unsigned int x = 0; x < directions.cols; ++x) {
             if (p_edges[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
-                p_directions[x] = direction;
+                p_directions[x] = fmodf(direction, 180.0);
             }
         }
     }
     //Unify outliers?
-    //If 5 neighbours are of same direction generic?
+    //For each pixel
     for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_directions = directions.ptr<float>(y);
         for (unsigned int x = 0; x < directions.cols; ++x) {
-            //How to avoid infinite loops?
+            //If at least 5 neighbours are of same direction generic
+            uint8_t foundDirections[4] = {0,0,0,0};
+            for (int _y = y - 1; _y <= y + 1; _y++) {
+                if (outOfBounds(&edges, x, _y)) continue; //NB! Different x
+                float * p_directions = directions.ptr<float>(y);
+                for (int _x = x - 1; _x <= x + 1; _x++) {
+                    //foundDirections[quantizeDirection(p_directions[x])] += 1;
+                }
+            }
+            //Change this direction to be similar?
         }
     }
 };
@@ -128,7 +126,7 @@ void ClusteringEngine::visualizeDirections(Mat * visualization) {
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         for (unsigned int x = 0; x < clusterData.cols; ++x) {
             if (p_edges[x] > 0) {
-                setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directions[x])], p_edges[x]));
+                setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directions[x])], 1));
             }
         }
     }
@@ -222,14 +220,22 @@ void ClusteringEngine::solidifyCluster(unsigned int x, unsigned int y, float val
     if (p_clusterData[x] == TEMPORARY_CLUSTER) {
         p_clusterData[x] = value;
     } else {
+        //If we have a crossing, keep track of it
         if (value != UNDEFINED_CLUSTER && p_clusterData[x] != UNDEFINED_CLUSTER) {
             assert(value != p_clusterData[x]);
             float smallerUid = MIN(value, p_clusterData[x]);
             float largerUid = MAX(value, p_clusterData[x]);
+            std::pair<float, float> location = std::pair<float, float>(smallerUid, largerUid);
+            std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.find(location);
+            if (it != storage.crossings.end()) {
+                //Found
+                it->second += 1;
+            } else {
+                //Not found, add it
+                storage.crossings[location] = 0;
+            }
             Vec3b * p_collision = collisionData.ptr<Vec3b>(y);
-            p_collision[x][0] = 255;//smallerUid;
-            p_collision[x][1] = 255;//largerUid;
-            p_collision[x][2] = 255;
+            setColor(&p_collision[x], WHITE);
         }
         return;
     }
@@ -289,8 +295,25 @@ void ClusteringEngine::computeClusters() {
                 if (cluster.mass > minClusterMass) {
                     cluster.computeGeometrics();
                     solidifyCluster(cluster.point.x, cluster.point.y, cluster.uid);
+                    bool merged = false;
+                    //Check if we should be merged to another cluster, if so, merge them
+                    for (std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
+                        //If this is a mapping for this cluster AND the overlap is over a threshold
+                        if (it->first.second == cluster.uid && it->second > 50) {
+                            merged = true;
+                            printf("merge %.f into %.f\n", cluster.uid, it->first.first);
+                            //Change this cluster to the one found before
+                            //Recalculate geometrics, add masses
+                            //NB! We may get multiple matches, just follow the value at given point when expanding and join
+                            //remapClusterTo(it->first.first);
+                        }
+                    }
+                    
+                    //If this cluster wasn't merged into another one, add it as a new one
                     //NB! Should always be the last operation since we don't operate by reference here
-                    storage.add(cluster);
+                    //if (!merged) {
+                        storage.add(cluster);
+                    //}
                 } else {
                     //TODO: Why isn't this working?
                     solidifyCluster(cluster.point.x, cluster.point.y, UNDEFINED_CLUSTER);
@@ -323,13 +346,13 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
-        if (false && cluster.mass > minClusterMass) {
+        if (    cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?
             //printf("%f\n", cluster->curvature);
             float w = cluster.width;
             float h = cluster.height;
-            if (w < 20 && h > 80) {
+            if (w < 15 && h > 50) {
                 line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), BLACK, 2.5);
                 line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), BLACK, 2.5);
                 line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);
@@ -360,6 +383,7 @@ void ClusteringEngine::newDatasource(Mat *edges) {
     this->directions = Mat(this->edges.rows, this->edges.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edges.rows, this->edges.cols, CV_32F, float(UNDEFINED_CLUSTER));
     this->collisionData = Mat(this->edges.rows, this->edges.cols, CV_8UC3, float(0));
+    
     return;
 }
 

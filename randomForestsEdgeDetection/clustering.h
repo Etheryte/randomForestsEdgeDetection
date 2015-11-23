@@ -49,22 +49,11 @@ public:
     Cluster (unsigned long guid);
 };
 
-class ClusterCrossing {
-public:
-    //Do we need to keep multiple points or will one suffice?
-    float uidA;
-    float uidB;
-    Point2i point;
-    size_t count;
-    
-    ClusterCrossing(float _uidA, float _uidB, unsigned int x, unsigned int y);
-};
-
 class ClusterStorage {
 public:
     std::vector<Cluster> clusters;
     std::unordered_map<float, Cluster *> hashmap;
-    std::map<std::pair<float, float>, ClusterCrossing> crossings;
+    std::map<std::pair<float, float>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
     
     void clear();
     void add(Cluster);
@@ -77,6 +66,7 @@ public:
 };
 
 class ClusteringEngine {
+    //General info
     std::vector<Vec3b> colors;
     Mat directions;
     Mat edges;

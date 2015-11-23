@@ -27,6 +27,7 @@ using namespace cv::ximgproc;
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
     Mat originalFrame, frame, edges;
     //Clustering kernels
@@ -35,7 +36,8 @@ int main(int argc, const char * argv[]) {
     FpsCounter fpsCounter = FpsCounter();
     int fps;
     VideoCapture cap;
-    cap.open(0);
+    //cap.open(0);
+    cap = VideoCapture(videoFileName);
     assert(cap.isOpened());
     
     float startThresh = 0.16;
@@ -96,14 +98,15 @@ int main(int argc, const char * argv[]) {
         //Free up ClusterEngine memory for a new iteration
         clustering.clear();
         
-        //add(originalFrame, visualization, visualization);
+        originalFrame *= 0.7;
+        add(originalFrame, visualization, visualization);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
         //resize(visualization, 2);
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
         imshow("edges", visualization);
-        while(wait());
+        //while(wait());
     }
     return 0;
 }
