@@ -26,6 +26,12 @@ void Cluster::computeGeometrics () {
     center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
 }
 
+std::string Cluster::toString() {
+    std::ostringstream oss;
+    oss << "cluster " << uid << ": mass = " << mass << " curvature = " << curvature;
+    return oss.str();
+}
+
 Cluster::Cluster (unsigned long guid) {
     mass = 0.0;
     uid = guid;
@@ -75,6 +81,10 @@ std::vector<Cluster>::iterator ClusterStorage::end() {
 
 Cluster ClusterStorage::operator[](const size_t index) {
     return clusters[index];
+}
+
+Cluster * ClusterStorage::getByUid(const float uid) {
+    return hashmap[uid];
 }
 
 /*
@@ -154,7 +164,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     float * p_directions = directions.ptr<float>(y);
     float * p_clusterData = clusterData.ptr<float>(y);
     
-    //This pixel already belongs to another cluster
+    //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
     if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
     //TODO: Use thresh here once all turns into a class?
     if (p_edges[x] < continueThresh) return;
@@ -212,19 +222,28 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
 };
 
 //Also finds crossings
-void ClusteringEngine::solidifyCluster(unsigned int x, unsigned int y, float value) {
-    if (value <= 0) return;
+void ClusteringEngine::expandRemapCluster(unsigned int x, unsigned int y, float from, float to) {
+    if (to <= 0) return;
     if (outOfBounds(&clusterData, x, y)) return;
     float * p_clusterData = clusterData.ptr<float>(y);
-    if (p_clusterData[x] == value) return;
-    if (p_clusterData[x] == TEMPORARY_CLUSTER) {
-        p_clusterData[x] = value;
+    if (p_clusterData[x] == to) return;
+    if (p_clusterData[x] == from) {
+        p_clusterData[x] = to;
+        
+        Cluster * toCluster = storage.getByUid(to);
+        if (toCluster != NULL) {
+            //If we're merging clusters, update rough cluster bounds
+            toCluster->maxX = MAX(toCluster->maxX, x);
+            toCluster->minX = MIN(toCluster->minX, x);
+            toCluster->maxY = MAX(toCluster->maxY, y);
+            toCluster->minY = MIN(toCluster->minY, y);
+        }
     } else {
         //If we have a crossing, keep track of it
-        if (value != UNDEFINED_CLUSTER && p_clusterData[x] != UNDEFINED_CLUSTER) {
-            assert(value != p_clusterData[x]);
-            float smallerUid = MIN(value, p_clusterData[x]);
-            float largerUid = MAX(value, p_clusterData[x]);
+        if (to != UNDEFINED_CLUSTER && p_clusterData[x] != UNDEFINED_CLUSTER) {
+            assert(to != p_clusterData[x]);
+            float smallerUid = MIN(to, p_clusterData[x]);
+            float largerUid = MAX(to, p_clusterData[x]);
             std::pair<float, float> location = std::pair<float, float>(smallerUid, largerUid);
             std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.find(location);
             if (it != storage.crossings.end()) {
@@ -235,13 +254,13 @@ void ClusteringEngine::solidifyCluster(unsigned int x, unsigned int y, float val
                 storage.crossings[location] = 0;
             }
             Vec3b * p_collision = collisionData.ptr<Vec3b>(y);
-            setColor(&p_collision[x], WHITE);
+            //setColor(&p_collision[x], WHITE);
         }
         return;
     }
     for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
         for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
-            solidifyCluster(_x, _y, value);
+            expandRemapCluster(_x, _y, from, to);
         }
     }
 }
@@ -258,15 +277,41 @@ bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
     return false;
 }
 
+bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
+    bool merged = false;
+    //Check if it should be merged to another cluster, if so, do it
+    for (std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
+        //If this is a mapping for this cluster AND the overlap is over a threshold
+        //TODO: Only if cluster average angle is similar, any other checks? OR if angle is similar?
+        if (it->first.second == cluster->uid && it->second > 100) {
+            merged = true;
+            Cluster * mergeInto = storage.getByUid(it->first.first);
+            //Change this cluster to the one found before, value might differ due to previous joins
+            int x = cluster->point.x;
+            int y = cluster->point.y;
+            float * p_clusterData = clusterData.ptr<float>(y);
+            expandRemapCluster(x, y, p_clusterData[x], it->first.first);
+            mergeInto->mass += cluster->mass;
+            mergeInto->computeGeometrics();
+        }
+    }
+    return merged;
+}
+
 void ClusteringEngine::computeClusters() {
     //Restore edges afterwards, do we need to?
     Mat tmp = Mat::zeros(edges.size(), edges.type());
     edges.copyTo(tmp);
+    
+    //Just for logging
+    size_t mergeCount = 0;
+    
     for (unsigned int y = 0; y < directions.rows; ++y) {
         float * p_edges = edges.ptr<float>(y);
         for (unsigned int x = 0; x < directions.cols; ++x) {
             if (p_edges[x] > startThresh) {
                 //Find local maximum
+                //TODO: Make separate method
                 unsigned int bestX = x;
                 unsigned int bestY = y;
                 float bestEdge = p_edges[x];
@@ -293,34 +338,28 @@ void ClusteringEngine::computeClusters() {
                 clusterNeighbours(bestX, bestY, &cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
                 //If the cluster is large enough, keep it
                 if (cluster.mass > minClusterMass) {
-                    cluster.computeGeometrics();
-                    solidifyCluster(cluster.point.x, cluster.point.y, cluster.uid);
-                    bool merged = false;
-                    //Check if we should be merged to another cluster, if so, merge them
-                    for (std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
-                        //If this is a mapping for this cluster AND the overlap is over a threshold
-                        if (it->first.second == cluster.uid && it->second > 50) {
-                            merged = true;
-                            printf("merge %.f into %.f\n", cluster.uid, it->first.first);
-                            //Change this cluster to the one found before
-                            //Recalculate geometrics, add masses
-                            //NB! We may get multiple matches, just follow the value at given point when expanding and join
-                            //remapClusterTo(it->first.first);
-                        }
-                    }
-                    
-                    //If this cluster wasn't merged into another one, add it as a new one
+                    storage.crossings.clear();
+                    //We need an initial run to discover crossings
+                    expandRemapCluster(cluster.point.x, cluster.point.y, TEMPORARY_CLUSTER, cluster.uid);
+                    //Check if this cluster was merged into an existing one
+                    bool merged = checkForOverlap(&cluster);
                     //NB! Should always be the last operation since we don't operate by reference here
-                    //if (!merged) {
+                    if (!merged) {
+                        cluster.computeGeometrics();
                         storage.add(cluster);
-                    //}
+                    } else {
+                        mergeCount++;
+                    }
                 } else {
                     //TODO: Why isn't this working?
-                    solidifyCluster(cluster.point.x, cluster.point.y, UNDEFINED_CLUSTER);
+                    expandRemapCluster(cluster.point.x, cluster.point.y, TEMPORARY_CLUSTER, UNDEFINED_CLUSTER);
                 }
             }
         }
     }
+    //Log info
+    printf("merges:%2zu  clusters:%3lu\n", mergeCount, storage.size());
+    
     edges.release();
     tmp.copyTo(edges);
     return;
@@ -346,13 +385,13 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
-        if (    cluster.mass > minClusterMass) {
+        if (false && cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?
             //printf("%f\n", cluster->curvature);
             float w = cluster.width;
             float h = cluster.height;
-            if (w < 15 && h > 50) {
+            if (w < 15 && h > 50 && cluster.mass > 100) {
                 line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), BLACK, 2.5);
                 line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), BLACK, 2.5);
                 line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);

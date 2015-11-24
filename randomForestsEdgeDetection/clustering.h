@@ -46,6 +46,7 @@ public:
     Point2i point;
     
     void computeGeometrics ();
+    std::string toString();
     Cluster (unsigned long guid);
 };
 
@@ -61,6 +62,7 @@ public:
     std::vector<Cluster>::iterator begin();
     std::vector<Cluster>::iterator end();
     Cluster operator[](const size_t index);
+    Cluster * getByUid(const float uid);
     
     ClusterStorage();
 };
@@ -80,7 +82,8 @@ class ClusteringEngine {
     
     bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
     int quantizeDirection(float radians);
-    void solidifyCluster(unsigned int x, unsigned int y, float value);
+    void expandRemapCluster(unsigned int x, unsigned int y, float from, float to);
+    bool checkForOverlap(Cluster * cluster);
     void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
     bool areSimilar(Cluster * a, Cluster * b);
 public:

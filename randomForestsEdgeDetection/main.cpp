@@ -45,7 +45,6 @@ int main(int argc, const char * argv[]) {
     float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
-    size_t clusterCount;
     
     while (waitEsc()) {
         
@@ -84,13 +83,7 @@ int main(int argc, const char * argv[]) {
         //Cluster data
         //TODO: implement minClusterMass for visualization, also merge small ones?
         clustering.computeClusters();
-        clusterCount = clustering.size();
         clustering.visualizeClusters(&visualization);
-        
-        //Log info
-        printf("clusters:%3lu ", clusterCount);
-        for (int i = (int)sqrt(clusterCount); i >= 0; i--) putchar('.');
-        putchar('\n');
         
         //Create intermediate mapping to efficiently find clusters that lie in a given candidate
         //OR would it be faster to simply iterate over all clusters and check if they're contained? Usually N ~< 100.
@@ -98,15 +91,15 @@ int main(int argc, const char * argv[]) {
         //Free up ClusterEngine memory for a new iteration
         clustering.clear();
         
-        originalFrame *= 0.7;
-        add(originalFrame, visualization, visualization);
+        //originalFrame *= 0.7;
+        //add(originalFrame, visualization, visualization);
         fps = fpsCounter.Get();
         //Scale up for easier visual inspection
         //resize(visualization, 2);
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
         imshow("edges", visualization);
-        //while(wait());
+        while(wait());
     }
     return 0;
 }
