@@ -108,23 +108,6 @@ void ClusteringEngine::computeDirections() {
             }
         }
     }
-    //Unify outliers?
-    //For each pixel
-    for (unsigned int y = 0; y < directions.rows; ++y) {
-        float * p_directions = directions.ptr<float>(y);
-        for (unsigned int x = 0; x < directions.cols; ++x) {
-            //If at least 5 neighbours are of same direction generic
-            uint8_t foundDirections[4] = {0,0,0,0};
-            for (int _y = y - 1; _y <= y + 1; _y++) {
-                if (outOfBounds(&edges, x, _y)) continue; //NB! Different x
-                float * p_directions = directions.ptr<float>(y);
-                for (int _x = x - 1; _x <= x + 1; _x++) {
-                    //foundDirections[quantizeDirection(p_directions[x])] += 1;
-                }
-            }
-            //Change this direction to be similar?
-        }
-    }
 };
 
 void ClusteringEngine::visualizeDirections(Mat * visualization) {
@@ -156,18 +139,16 @@ int ClusteringEngine::quantizeDirection(float radians) {
     return -1;
 };
 
-//We only make one pixel deep exceptions
 void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;
     float * p_edges = edges.ptr<float>(y);
     if (outOfBounds(&directions, x, y)) return;
+    if (p_edges[x] < continueThresh) return;
     float * p_directions = directions.ptr<float>(y);
     float * p_clusterData = clusterData.ptr<float>(y);
     
     //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
     if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
-    //TODO: Use thresh here once all turns into a class?
-    if (p_edges[x] < continueThresh) return;
     
     float direction = p_directions[x];
     if (originalDirection == UNDEFINED_DIRECTION) {
@@ -188,7 +169,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     if (previousDirection != UNDEFINED_DIRECTION) {
         float delta = fabs(fmod(previousDirection - direction, M_PI));
         float modifier = M_PI / 2.0;
-        //If the pixel is very strong, don't care for direction
+        //If the pixel is very strong, don't care for direction?
         //Do we want edges squared or not?
         if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edges[x]) {
             return;
@@ -210,7 +191,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     
     //Don't check this location again
     p_edges[x] = 0;
-    //If the cluster is large enough, update it later
+    //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
     //Proceed left and right first as the memory addresses are sequencial
@@ -253,8 +234,6 @@ void ClusteringEngine::expandRemapCluster(unsigned int x, unsigned int y, float 
                 //Not found, add it
                 storage.crossings[location] = 0;
             }
-            Vec3b * p_collision = collisionData.ptr<Vec3b>(y);
-            //setColor(&p_collision[x], WHITE);
         }
         return;
     }
@@ -422,7 +401,6 @@ void ClusteringEngine::newDatasource(Mat *edges) {
     this->directions = Mat(this->edges.rows, this->edges.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edges.rows, this->edges.cols, CV_32F, float(UNDEFINED_CLUSTER));
     this->collisionData = Mat(this->edges.rows, this->edges.cols, CV_8UC3, float(0));
-    
     return;
 }
 
