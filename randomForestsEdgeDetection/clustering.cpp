@@ -93,18 +93,18 @@ Cluster * ClusterStorage::getByUid(const float uid) {
 
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
-    Scharr(edges, frame_x, CV_32F, 1, 0);
-    Scharr(edges, frame_y, CV_32F, 0, 1);
+    Scharr(edgeData, frame_x, CV_32F, 1, 0);
+    Scharr(edgeData, frame_y, CV_32F, 0, 1);
     
-    for (unsigned int y = 0; y < directions.rows; ++y) {
-        float * p_edges = edges.ptr<float>(y);
+    for (unsigned int y = 0; y < directionData.rows; ++y) {
+        float * p_edgeData = edgeData.ptr<float>(y);
         float * p_x  = frame_x.ptr<float>(y);
         float * p_y  = frame_y.ptr<float>(y);
-        float * p_directions = directions.ptr<float>(y);
-        for (unsigned int x = 0; x < directions.cols; ++x) {
-            if (p_edges[x] > 0) {
+        float * p_directionData = directionData.ptr<float>(y);
+        for (unsigned int x = 0; x < directionData.cols; ++x) {
+            if (p_edgeData[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
-                p_directions[x] = fmodf(direction, 180.0);
+                p_directionData[x] = fmodf(direction, 180.0);
             }
         }
     }
@@ -112,14 +112,14 @@ void ClusteringEngine::computeDirections() {
 
 void ClusteringEngine::visualizeDirections(Mat * visualization) {
     visualization->release();
-    * visualization = Mat(edges.rows, edges.cols, CV_8UC3, uint8_t(0));
-    for (unsigned int y = 0; y < edges.rows; ++y) {
-        float * p_directions = directions.ptr<float>(y);
-        float * p_edges = edges.ptr<float>(y);
+    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
+    for (unsigned int y = 0; y < edgeData.rows; ++y) {
+        float * p_directionData = directionData.ptr<float>(y);
+        float * p_edgeData = edgeData.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         for (unsigned int x = 0; x < clusterData.cols; ++x) {
-            if (p_edges[x] > 0) {
-                setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directions[x])], 1));
+            if (p_edgeData[x] > 0) {
+                setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directionData[x])], 1));
             }
         }
     }
@@ -141,16 +141,16 @@ int ClusteringEngine::quantizeDirection(float radians) {
 
 void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;
-    float * p_edges = edges.ptr<float>(y);
-    if (outOfBounds(&directions, x, y)) return;
-    if (p_edges[x] < continueThresh) return;
-    float * p_directions = directions.ptr<float>(y);
+    float * p_edgeData = edgeData.ptr<float>(y);
+    if (outOfBounds(&directionData, x, y)) return;
+    if (p_edgeData[x] < continueThresh) return;
+    float * p_directionData = directionData.ptr<float>(y);
     float * p_clusterData = clusterData.ptr<float>(y);
     
     //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
     if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
     
-    float direction = p_directions[x];
+    float direction = p_directionData[x];
     if (originalDirection == UNDEFINED_DIRECTION) {
         originalDirection = direction;
     }
@@ -171,7 +171,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         float modifier = M_PI / 2.0;
         //If the pixel is very strong, don't care for direction?
         //Do we want edges squared or not?
-        if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edges[x]) {
+        if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edgeData[x]) {
             return;
         }
         //Update largest found deviation from direction
@@ -190,7 +190,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     cluster->minY = MIN(cluster->minY, y);
     
     //Don't check this location again
-    p_edges[x] = 0;
+    p_edgeData[x] = 0;
     //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
@@ -279,29 +279,29 @@ bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
 
 void ClusteringEngine::computeClusters() {
     //Restore edges afterwards, do we need to?
-    Mat tmp = Mat::zeros(edges.size(), edges.type());
-    edges.copyTo(tmp);
+    Mat tmp = Mat::zeros(edgeData.size(), edgeData.type());
+    edgeData.copyTo(tmp);
     
     //Just for logging
     size_t mergeCount = 0;
     
-    for (unsigned int y = 0; y < directions.rows; ++y) {
-        float * p_edges = edges.ptr<float>(y);
-        for (unsigned int x = 0; x < directions.cols; ++x) {
-            if (p_edges[x] > startThresh) {
+    for (unsigned int y = 0; y < directionData.rows; ++y) {
+        float * p_edgeData = edgeData.ptr<float>(y);
+        for (unsigned int x = 0; x < directionData.cols; ++x) {
+            if (p_edgeData[x] > startThresh) {
                 //Find local maximum
                 //TODO: Make separate method
                 unsigned int bestX = x;
                 unsigned int bestY = y;
-                float bestEdge = p_edges[x];
+                float bestEdge = p_edgeData[x];
                 for (bool found = false; !found; found = false) {
                     for (int _y = bestY - 1; _y <= bestY + 1; _y++) {
-                        if (outOfBounds(&edges, bestX, _y)) continue;
-                        p_edges = edges.ptr<float>(_y);
+                        if (outOfBounds(&edgeData, bestX, _y)) continue;
+                        p_edgeData = edgeData.ptr<float>(_y);
                         for (int _x = bestX - 1; _x <= bestX + 1; _x++) {
-                            if (outOfBounds(&edges, _x, _y)) continue;
-                            if (p_edges[_x] > bestEdge) {
-                                bestEdge = p_edges[_x];
+                            if (outOfBounds(&edgeData, _x, _y)) continue;
+                            if (p_edgeData[_x] > bestEdge) {
+                                bestEdge = p_edgeData[_x];
                                 bestX = _x;
                                 bestY = _y;
                                 found = true;
@@ -339,25 +339,25 @@ void ClusteringEngine::computeClusters() {
     //Log info
     printf("merges:%2zu  clusters:%3lu\n", mergeCount, storage.size());
     
-    edges.release();
-    tmp.copyTo(edges);
+    edgeData.release();
+    tmp.copyTo(edgeData);
     return;
 }
 
 void ClusteringEngine::visualizeClusters(Mat * visualization) {
     visualization->release();
-    * visualization = Mat(edges.rows, edges.cols, CV_8UC3, uint8_t(0));
+    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
     if (storage.size() == 0) return;
     //Draw clusters
     for (unsigned int y = 0; y < visualization->rows; ++y) {
-        float * p_edges = edges.ptr<float>(y);
+        float * p_edgeData = edgeData.ptr<float>(y);
         float * p_clusterData = clusterData.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         for (unsigned int x = 0; x < visualization->cols; ++x) {
             if (p_clusterData[x] > 0.0) {
                 setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
-                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edges[x]));
-                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edges[x])));
+                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
+                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
             }
         }
     }
@@ -396,24 +396,24 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
     this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}};
 };
 
-void ClusteringEngine::newDatasource(Mat *edges) {
-    edges->copyTo(this->edges);
-    this->directions = Mat(this->edges.rows, this->edges.cols, CV_32F, float(0));
-    this->clusterData = Mat(this->edges.rows, this->edges.cols, CV_32F, float(UNDEFINED_CLUSTER));
-    this->collisionData = Mat(this->edges.rows, this->edges.cols, CV_8UC3, float(0));
+void ClusteringEngine::newDatasource(Mat *edgeData) {
+    edgeData->copyTo(this->edgeData);
+    this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
+    this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(UNDEFINED_CLUSTER));
+    this->collisionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_8UC3, float(0));
     return;
 }
 
 void ClusteringEngine::clear() {
     this->storage.clear();
-    this->edges.release();
-    this->directions.release();
+    this->edgeData.release();
+    this->directionData.release();
     this->clusterData.release();
     this->collisionData.release();
 }
 
 Mat ClusteringEngine::getDirections() {
-    return this->directions;
+    return this->directionData;
 }
 
 size_t ClusteringEngine::size() {

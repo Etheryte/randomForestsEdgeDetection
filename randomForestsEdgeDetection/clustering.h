@@ -70,8 +70,8 @@ public:
 class ClusteringEngine {
     //General info
     std::vector<Vec3b> colors;
-    Mat directions;
-    Mat edges;
+    Mat directionData;
+    Mat edgeData;
     Mat clusterData;
     Mat collisionData;
     float startThresh;
