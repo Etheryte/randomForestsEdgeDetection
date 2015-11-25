@@ -24,6 +24,26 @@ void Cluster::computeGeometrics () {
     width = maxX - minX;
     height = maxY - minY;
     center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
+    if (directions.size() > 0) {
+        bool flipped = false;
+        float first = directions.front();
+        if (first > M_PI / 2.0 || first < - M_PI / 2.0) flipped = true;
+        float sum = 0.0;
+        for (std::vector<float>::iterator it = directions.begin(); it != directions.end(); ++it) {
+            if (flipped) {
+                sum += fmodf((* it) - M_PI, M_PI);
+            } else {
+                sum += (* it);
+            }
+        }
+        sum /= directions.size();
+        if (flipped) {
+            sum += M_PI;
+        }
+        sum *= -1;
+        averageDirection = sum;
+        //printf("%f\n", sum);
+    }
 }
 
 std::string Cluster::toString() {
@@ -44,6 +64,8 @@ Cluster::Cluster (unsigned long guid) {
     width = 0;
     height = 0;
     foundDirections = 0;
+    directions = std::vector<float>();
+    averageDirection = UNDEFINED_DIRECTION;
 }
 
 /*
@@ -139,7 +161,7 @@ int ClusteringEngine::quantizeDirection(float radians) {
     return -1;
 };
 
-void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
+void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection, float stepDirection) {
     if (cluster->mass >= maxClusterMass) return;
     float * p_edgeData = edgeData.ptr<float>(y);
     if (outOfBounds(&directionData, x, y)) return;
@@ -180,8 +202,11 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     
     cluster->foundDirections = tmp;
     
+    if (stepDirection != UNDEFINED_DIRECTION) {
+        cluster->directions.push_back(stepDirection);
+    }
     //Do we want mass as integer or not?
-    cluster->mass += 1;//weightsLine[x];
+    cluster->mass += p_edgeData[x]; //1;
     
     //Mark rough cluster bounds
     cluster->maxX = MAX(cluster->maxX, x);
@@ -194,10 +219,13 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
+    float steps[] = {0.75, 0.5, 0.25, 1, 0, 0, 1.25, 1.5, 1.75};
+    int n = 0;
     //Proceed left and right first as the memory addresses are sequencial
     for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
         for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-            clusterNeighbours(_x, _y, cluster, originalDirection, direction);
+            clusterNeighbours(_x, _y, cluster, originalDirection, direction, steps[n]);
+            n++;
         }
     }
 };
@@ -258,19 +286,27 @@ bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
 
 bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
     bool merged = false;
+    //Temporary disable
+    return merged;
     //Check if it should be merged to another cluster, if so, do it
     for (std::map<std::pair<float, float>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
         //If this is a mapping for this cluster AND the overlap is over a threshold
         //TODO: Only if cluster average angle is similar, any other checks? OR if angle is similar?
-        if (it->first.second == cluster->uid && it->second > 100) {
+        Cluster * mergeInto = storage.getByUid(it->first.first);
+        printf("%f\n", fabsf(cluster->averageDirection - mergeInto->averageDirection));
+        //
+        if ((it->first.second == cluster->uid) && ((
+                                                    (it->second > 100 && fabsf(cluster->averageDirection - mergeInto->averageDirection) < 0.5)) ||
+                                                   (it->second > 150)
+                                                   )) {
             merged = true;
-            Cluster * mergeInto = storage.getByUid(it->first.first);
             //Change this cluster to the one found before, value might differ due to previous joins
             int x = cluster->point.x;
             int y = cluster->point.y;
             float * p_clusterData = clusterData.ptr<float>(y);
             expandRemapCluster(x, y, p_clusterData[x], it->first.first);
             mergeInto->mass += cluster->mass;
+            //mergeInto->directions.insert(mergeInto->directions.end(), cluster->directions.begin(), cluster->directions.end());
             mergeInto->computeGeometrics();
         }
     }
@@ -314,7 +350,8 @@ void ClusteringEngine::computeClusters() {
                 Cluster cluster = Cluster(storage.size());
                 cluster.point.x = bestX;
                 cluster.point.y = bestY;
-                clusterNeighbours(bestX, bestY, &cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
+                clusterNeighbours(bestX, bestY, &cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
+                cluster.computeGeometrics();
                 //If the cluster is large enough, keep it
                 if (cluster.mass > minClusterMass) {
                     storage.crossings.clear();
@@ -324,7 +361,6 @@ void ClusteringEngine::computeClusters() {
                     bool merged = checkForOverlap(&cluster);
                     //NB! Should always be the last operation since we don't operate by reference here
                     if (!merged) {
-                        cluster.computeGeometrics();
                         storage.add(cluster);
                     } else {
                         mergeCount++;
@@ -364,6 +400,16 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
+        int radius = 20;
+        float a = cluster.averageDirection * M_PI;
+        int x = cluster.center.x + radius * sinf(a);
+        int y = cluster.center.y + radius * cosf(a);
+        Point2i start = Point2i(x, y);
+        radius = -radius;
+        x = cluster.center.x + radius * sinf(a);
+        y = cluster.center.y + radius * cosf(a);
+        Point2i end = Point2i(x, y);
+        line(* visualization, start, end, WHITE);
         if (false && cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?

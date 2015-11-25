@@ -44,6 +44,8 @@ public:
     Point2i center; //NB! This might not contain a data point
     //A single point included in the cluster, randomity doesn't matter to us here
     Point2i point;
+    std::vector<float> directions;
+    float averageDirection;
     
     void computeGeometrics ();
     std::string toString();
@@ -84,7 +86,7 @@ class ClusteringEngine {
     int quantizeDirection(float radians);
     void expandRemapCluster(unsigned int x, unsigned int y, float from, float to);
     bool checkForOverlap(Cluster * cluster);
-    void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
+    void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection, float stepDirection);
     bool areSimilar(Cluster * a, Cluster * b);
 public:
     Mat getDirections();

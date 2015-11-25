@@ -25,6 +25,12 @@
 using namespace cv;
 using namespace cv::ximgproc;
 
+void clickDebug(int event, int x, int y, int flags, void * userdata) {
+    if (event == EVENT_LBUTTONDOWN) {
+        printf("<%d; %d>\n", x, y);
+    }
+}
+
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
@@ -46,7 +52,12 @@ int main(int argc, const char * argv[]) {
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
     
+    namedWindow("", 1);
+    setMouseCallback("", clickDebug, &clustering);
+    
     while (waitEsc()) {
+        //Free up ClusterEngine memory for a new iteration
+        clustering.clear();
         
         originalFrame = GetFrame(cap);
         originalFrame.copyTo(frame);
@@ -88,9 +99,6 @@ int main(int argc, const char * argv[]) {
         //Create intermediate mapping to efficiently find clusters that lie in a given candidate
         //OR would it be faster to simply iterate over all clusters and check if they're contained? Usually N ~< 100.
         
-        //Free up ClusterEngine memory for a new iteration
-        clustering.clear();
-        
         //originalFrame *= 0.7;
         //add(originalFrame, visualization, visualization);
         fps = fpsCounter.Get();
@@ -98,7 +106,7 @@ int main(int argc, const char * argv[]) {
         //resize(visualization, 2);
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         
-        imshow("edges", visualization);
+        imshow("", visualization);
         while(wait());
     }
     return 0;
