@@ -27,7 +27,8 @@ using namespace cv::ximgproc;
 
 void clickDebug(int event, int x, int y, int flags, void * userdata) {
     if (event == EVENT_LBUTTONDOWN) {
-        printf("<%d; %d>\n", x, y);
+        ClusteringEngine * clustering = (ClusteringEngine *) userdata;
+        clustering->getClusterInfoAt(x, y);
     }
 }
 
@@ -47,7 +48,7 @@ int main(int argc, const char * argv[]) {
     assert(cap.isOpened());
     
     float startThresh = 0.16;
-    float continueThresh = 0.08;
+    float continueThresh = 0.12;
     float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
@@ -67,18 +68,11 @@ int main(int argc, const char * argv[]) {
         detector->clear();
         detector->detectEdges(frame, edges);
         
-        //threshold(edges, edges, thresh, 1.0, THRESH_TOZERO);
-        
-        /* Thinning test
-         threshold(edges, thresholded, thresh, 255.0, THRESH_BINARY);
-         Mat bw2, bw;
-         thresholded.convertTo(bw2, CV_8UC1);
-         threshold(bw2, bw, 10, 255, CV_THRESH_BINARY);
-         thinning(bw, bw);
-         if (fps > 0) ShowText(bw, std::to_string(fps));
-         imshow("", bw);
-         continue;
-         */
+        if (false) {
+            imshow("", edges);
+            while(wait());
+            continue;
+        }
         
         //Get weighed directions
         clustering.newDatasource(&edges);
