@@ -47,8 +47,8 @@ int main(int argc, const char * argv[]) {
     cap = VideoCapture(videoFileName);
     assert(cap.isOpened());
     
-    float startThresh = 0.16;
-    float continueThresh = 0.12;
+    float startThresh = 0.10;
+    float continueThresh = 0.06;
     float minClusterMass = 50;
     float maxClusterMass = 1000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);

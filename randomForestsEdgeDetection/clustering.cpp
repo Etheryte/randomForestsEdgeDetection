@@ -50,7 +50,7 @@ void Cluster::computeGeometrics () {
 
 std::string Cluster::toString() {
     std::ostringstream oss;
-    oss << "cluster " << uid << ": mass = " << mass << " curvature = " << curvature;
+    oss << "cluster " << int(uid) << ": mass = " << mass << " curvature = " << curvature;
     return oss.str();
 }
 
@@ -274,14 +274,13 @@ bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
 
 bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
     bool merged = false;
-    return false;
     //Check if it should be merged to another cluster, if so, do it
     for (std::map<std::pair<int8_t, int8_t>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
         //If this is a mapping for this cluster AND the overlap is over a threshold
         //TODO: Only if cluster average angle is similar, any other checks? OR if angle is similar?
         Cluster * mergeInto = storage.getByUid(it->first.first);
-        printf("%f %f\n", cluster->averageDirection, mergeInto->averageDirection);
-        if ((it->first.second == cluster->uid) && (it->second > 100 /*&& cluster->averageDirection == mergeInto->averageDirection*/)) {
+        //printf("%f %f\n", cluster->averageDirection, mergeInto->averageDirection);
+        if ((it->first.second == cluster->uid) && (it->second > 50)) {
             merged = true;
             //Change this cluster to the one found before, value might differ due to previous joins
             int x = cluster->point.x;
@@ -383,13 +382,6 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
-        int radius = 20;
-        float a = cluster.averageDirection + 0.5 * M_PI;
-        Point2i start = Point2i(cluster.center);
-        int x = cluster.center.x + radius * sinf(a);
-        int y = cluster.center.y + radius * cosf(a);
-        Point2i end = Point2i(x, y);
-        line(* visualization, start, end, WHITE);
         if (false && cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?

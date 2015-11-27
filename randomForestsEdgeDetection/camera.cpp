@@ -10,7 +10,16 @@
 
 Mat GetFrame(VideoCapture cap) {
     Mat frame;
-    cap >> frame;
+    
+    int retry = 5;
+    do {
+        cap >> frame;
+        retry--;
+        if (retry == 0) {
+            printf("end of stream\n");
+            exit(0);
+        }
+    } while (frame.empty());
     assert(!frame.empty());
     
     //If we're using the webcam, size things down and flip
