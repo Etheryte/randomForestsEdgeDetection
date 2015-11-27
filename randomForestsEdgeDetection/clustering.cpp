@@ -197,7 +197,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     cluster->directions.push_back(quantizeDirection(p_directionData[x]));
     
     //Do we want mass as integer or not?
-    cluster->mass += p_edgeData[x]; //1;
+    cluster->mass += 1; //p_edgeData[x]
     
     //Mark rough cluster bounds
     cluster->maxX = MAX(cluster->maxX, x);

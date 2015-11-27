@@ -50,7 +50,7 @@ int main(int argc, const char * argv[]) {
     float startThresh = 0.10;
     float continueThresh = 0.06;
     float minClusterMass = 50;
-    float maxClusterMass = 1000;
+    float maxClusterMass = 2000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
     
     namedWindow("", 1);
