@@ -74,6 +74,7 @@ class ClusteringEngine {
     std::vector<Vec3b> colors;
     Mat directionData;
     Mat edgeData;
+    Mat narrowEdgeData;
     Mat clusterData;
     float startThresh;
     float continueThresh;

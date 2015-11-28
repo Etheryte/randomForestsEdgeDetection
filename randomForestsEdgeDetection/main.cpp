@@ -49,8 +49,8 @@ int main(int argc, const char * argv[]) {
     
     float startThresh = 0.10;
     float continueThresh = 0.06;
-    float minClusterMass = 50;
-    float maxClusterMass = 2000;
+    float minClusterMass = 20;
+    float maxClusterMass = 5000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
     
     namedWindow("", 1);
@@ -69,6 +69,14 @@ int main(int argc, const char * argv[]) {
         detector->detectEdges(frame, edges);
         
         if (false) {
+            imshow("", edges);
+            while(wait());
+            continue;
+        }
+        
+        if (false) {
+            edges.convertTo(edges, CV_8U, 255);
+            Canny(edges, edges, 40, 120);
             imshow("", edges);
             while(wait());
             continue;

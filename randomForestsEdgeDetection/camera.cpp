@@ -14,6 +14,15 @@ Mat GetFrame(VideoCapture cap) {
     int retry = 5;
     do {
         cap >> frame;
+        
+        //If we're using the webcam, size things down and flip
+        if(cap.get(CV_CAP_PROP_FOURCC) == 0.0) {
+            ResizeFrame(&frame, 0.25);
+            flip(frame, frame, 1);
+        } else {
+            //For faster video debug, I'm lazy
+            cap >> frame;
+        }
         retry--;
         if (retry == 0) {
             printf("end of stream\n");
@@ -21,15 +30,6 @@ Mat GetFrame(VideoCapture cap) {
         }
     } while (frame.empty());
     assert(!frame.empty());
-    
-    //If we're using the webcam, size things down and flip
-    if(cap.get(CV_CAP_PROP_FOURCC) == 0.0) {
-        ResizeFrame(&frame, 0.25);
-        flip(frame, frame, 1);
-    } else {
-        //For faster video debug, I'm lazy
-        cap >> frame;
-    }
     
     //GaussianBlur(frame, frame, Size(5,5), 3);
     //cvtColor(frame, frame, CV_BGR2GRAY);

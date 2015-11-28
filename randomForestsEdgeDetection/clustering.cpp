@@ -117,8 +117,8 @@ Cluster * ClusterStorage::getByUid(const int8_t uid) {
 
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
-    Scharr(edgeData, frame_x, CV_32F, 1, 0);
-    Scharr(edgeData, frame_y, CV_32F, 0, 1);
+    Sobel(edgeData, frame_x, CV_32F, 1, 0);
+    Sobel(edgeData, frame_y, CV_32F, 0, 1);
     
     for (unsigned int y = 0; y < directionData.rows; ++y) {
         float * p_edgeData = edgeData.ptr<float>(y);
@@ -155,7 +155,7 @@ bool ClusteringEngine::outOfBounds (Mat * frame, unsigned int x, unsigned int y)
 
 void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;
-    float * p_edgeData = edgeData.ptr<float>(y);
+    float * p_edgeData = narrowEdgeData.ptr<float>(y);
     if (outOfBounds(&directionData, x, y)) return;
     if (p_edgeData[x] < continueThresh) return;
     float * p_directionData = directionData.ptr<float>(y);
@@ -274,6 +274,7 @@ bool ClusteringEngine::areSimilar(Cluster * a, Cluster * b) {
 
 bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
     bool merged = false;
+    return merged;
     //Check if it should be merged to another cluster, if so, do it
     for (std::map<std::pair<int8_t, int8_t>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
         //If this is a mapping for this cluster AND the overlap is over a threshold
@@ -297,14 +298,14 @@ bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
 
 void ClusteringEngine::computeClusters() {
     //Restore edges afterwards, do we need to?
-    Mat tmp = Mat::zeros(edgeData.size(), edgeData.type());
-    edgeData.copyTo(tmp);
+    Mat tmp = Mat::zeros(narrowEdgeData.size(), narrowEdgeData.type());
+    narrowEdgeData.copyTo(tmp);
     
     //Just for logging
     size_t mergeCount = 0;
     
     for (unsigned int y = 0; y < directionData.rows; ++y) {
-        float * p_edgeData = edgeData.ptr<float>(y);
+        float * p_edgeData = narrowEdgeData.ptr<float>(y);
         for (unsigned int x = 0; x < directionData.cols; ++x) {
             if (p_edgeData[x] > startThresh) {
                 //Find local maximum
@@ -314,10 +315,10 @@ void ClusteringEngine::computeClusters() {
                 float bestEdge = p_edgeData[x];
                 for (bool found = false; !found; found = false) {
                     for (int _y = bestY - 1; _y <= bestY + 1; _y++) {
-                        if (outOfBounds(&edgeData, bestX, _y)) continue;
-                        p_edgeData = edgeData.ptr<float>(_y);
+                        if (outOfBounds(&narrowEdgeData, bestX, _y)) continue;
+                        p_edgeData = narrowEdgeData.ptr<float>(_y);
                         for (int _x = bestX - 1; _x <= bestX + 1; _x++) {
-                            if (outOfBounds(&edgeData, _x, _y)) continue;
+                            if (outOfBounds(&narrowEdgeData, _x, _y)) continue;
                             if (p_edgeData[_x] > bestEdge) {
                                 bestEdge = p_edgeData[_x];
                                 bestX = _x;
@@ -357,8 +358,8 @@ void ClusteringEngine::computeClusters() {
     //Log info
     printf("merges:%2zu  clusters:%3lu\n", mergeCount, storage.size());
     
-    edgeData.release();
-    tmp.copyTo(edgeData);
+    narrowEdgeData.release();
+    tmp.copyTo(narrowEdgeData);
     return;
 }
 
@@ -415,6 +416,11 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
 
 void ClusteringEngine::newDatasource(Mat *edgeData) {
     edgeData->copyTo(this->edgeData);
+    //TODO: just make a separate unconverting method
+    this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
+    Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
+    this->narrowEdgeData.convertTo(this->narrowEdgeData, CV_32F, 1.0/255.0);
+    dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
     this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_8SC1, int(UNDEFINED_CLUSTER));
     return;
