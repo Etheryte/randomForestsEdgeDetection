@@ -31,5 +31,6 @@ Vec3b getRandomColor (int seed);
 Vec3b roughOpacity(Vec3b color, float opacity);
 int hammingWeight (uint8_t x);
 void resize(Mat frame, float factor);
+void combineVisualizations (Mat frame, Mat edges, Mat directions, Mat clusters, Mat * output);
 
 #endif /* defined(__randomForestsEdgeDetection__util__) */

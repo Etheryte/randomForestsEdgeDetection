@@ -139,7 +139,7 @@ void ClusteringEngine::visualizeDirections(Mat * visualization) {
     * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
     for (unsigned int y = 0; y < edgeData.rows; ++y) {
         float * p_directionData = directionData.ptr<float>(y);
-        float * p_edgeData = edgeData.ptr<float>(y);
+        float * p_edgeData = narrowEdgeData.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         for (unsigned int x = 0; x < clusterData.cols; ++x) {
             if (p_edgeData[x] > 0) {

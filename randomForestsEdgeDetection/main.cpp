@@ -36,9 +36,8 @@ int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame, edges;
-    //Clustering kernels
-    Mat directionsDemo, clustersFrame, visualization;
+    Mat originalFrame, frame, edges, visualization;
+    Mat directionVisualization, clusterVisualization;
     
     FpsCounter fpsCounter = FpsCounter();
     int fps;
@@ -85,29 +84,21 @@ int main(int argc, const char * argv[]) {
         //Get weighed directions
         clustering.newDatasource(&edges);
         clustering.computeDirections();
-        clustering.visualizeDirections(&visualization);
+        clustering.visualizeDirections(&directionVisualization);
         
         if (false) {
-            imshow("", visualization);
+            imshow("", directionVisualization);
             while(wait());
             continue;
         }
         
         //Cluster data
-        //TODO: implement minClusterMass for visualization, also merge small ones?
         clustering.computeClusters();
-        clustering.visualizeClusters(&visualization);
+        clustering.visualizeClusters(&clusterVisualization);
         
-        //Create intermediate mapping to efficiently find clusters that lie in a given candidate
-        //OR would it be faster to simply iterate over all clusters and check if they're contained? Usually N ~< 100.
-        
-        //originalFrame *= 0.7;
-        //add(originalFrame, visualization, visualization);
+        combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();
-        //Scale up for easier visual inspection
-        //resize(visualization, 2);
-        if (fps > 0) ShowText(visualization, std::to_string(fps));
-        
+        //if (fps > 0) ShowText(visualization, std::to_string(fps));
         imshow("", visualization);
         while(wait());
     }

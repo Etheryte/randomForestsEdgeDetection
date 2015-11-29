@@ -96,6 +96,27 @@ void resize(Mat frame, float factor) {
     resize(frame, frame, newSize);
 }
 
+void combineVisualizations (Mat frame, Mat edges, Mat directions, Mat clusters, Mat * output) {
+    unsigned int width = frame.cols;
+    unsigned int height = frame.rows;
+    output->release();
+    * output = Mat(frame.size() * 2, CV_8UC3, uint8_t(0));
+    frame.convertTo(frame, CV_8UC3, 255);
+    frame.copyTo((* output)(Rect(0, 0, width, height)));
+    cvtColor(edges, edges, CV_GRAY2BGR);
+    edges.convertTo(edges, CV_8UC3, 255);
+    edges.copyTo((* output)(Rect(width, 0, width, height)));
+    directions.copyTo((* output)(Rect(0, height, width, height)));
+    clusters.copyTo((* output)(Rect(width, height, width, height)));
+}
+
+
+
+
+
+
+
+
 
 
 
