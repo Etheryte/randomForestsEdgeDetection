@@ -21,7 +21,7 @@ Mat GetFrame(VideoCapture cap) {
             flip(frame, frame, 1);
         } else {
             //For faster video debug, I'm lazy
-            cap >> frame;
+            //cap >> frame;
         }
         retry--;
         if (retry == 0) {

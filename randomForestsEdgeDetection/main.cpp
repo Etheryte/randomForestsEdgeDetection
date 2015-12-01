@@ -13,6 +13,9 @@
 #include <opencv2/video/tracking.hpp>
 #include <opencv2/ximgproc.hpp>
 
+#include <iostream>
+#include <iomanip>
+
 #include "util.h"
 #include "camera.h"
 #include "fps.h"
@@ -35,10 +38,13 @@ void clickDebug(int event, int x, int y, int flags, void * userdata) {
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
+    //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
+    std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
     Mat originalFrame, frame, edges, visualization;
     Mat directionVisualization, clusterVisualization;
     
+    float frameCount = 0;
     FpsCounter fpsCounter = FpsCounter();
     int fps;
     VideoCapture cap;
@@ -94,12 +100,15 @@ int main(int argc, const char * argv[]) {
         
         //Cluster data
         clustering.computeClusters();
-        clustering.visualizeClusters(&clusterVisualization);
+        clustering.visualizeClusters(&visualization);
         
-        combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
+        //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();
-        //if (fps > 0) ShowText(visualization, std::to_string(fps));
+        if (fps > 0) ShowText(visualization, std::to_string(fps));
         imshow("", visualization);
+        
+        std::ostringstream filename;
+        filename << rootOutputPath << "frame" << std::setfill('0') << std::setw(5) << frameCount++ << ".png";
         while(wait());
     }
     return 0;

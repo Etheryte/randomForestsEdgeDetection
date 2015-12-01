@@ -29,7 +29,7 @@ using namespace cv::ximgproc;
 
 class Cluster {
 public:
-    int8_t uid;
+    int16_t uid;
     float mass;
     float curvature;
     uint8_t foundDirections;
@@ -49,14 +49,14 @@ public:
     
     void computeGeometrics ();
     std::string toString();
-    Cluster (int8_t guid);
+    Cluster (int16_t guid);
 };
 
 class ClusterStorage {
 public:
     std::vector<Cluster> clusters;
-    std::unordered_map<int8_t, Cluster *> hashmap;
-    std::map<std::pair<int8_t, int8_t>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
+    std::unordered_map<int16_t, Cluster *> hashmap;
+    std::map<std::pair<int16_t, int16_t>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
     
     void clear();
     void add(Cluster);
@@ -64,7 +64,7 @@ public:
     std::vector<Cluster>::iterator begin();
     std::vector<Cluster>::iterator end();
     Cluster operator[](const size_t index);
-    Cluster * getByUid(const int8_t uid);
+    Cluster * getByUid(const int16_t uid);
     
     ClusterStorage();
 };
@@ -83,10 +83,9 @@ class ClusteringEngine {
     ClusterStorage storage;
     
     bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
-    void expandRemapCluster(unsigned int x, unsigned int y, int8_t from, int8_t to);
+    void remapCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
     void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
-    bool areSimilar(Cluster * a, Cluster * b);
 public:
     static int quantizeDirection(float radians);
     Mat getDirections();

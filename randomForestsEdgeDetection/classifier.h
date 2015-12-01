@@ -9,6 +9,18 @@
 #ifndef __randomForestsEdgeDetection__classifier__
 #define __randomForestsEdgeDetection__classifier__
 
-#include <stdio.h>
+#include "clustering.h"
+
+enum Classes {
+    UNDEFINED = -1,
+    GOALPOST
+};
+
+class Classifier {
+public:
+    void classifyClusters(ClusterStorage * storage);
+    bool possibleGoalPost(Cluster * cluster);
+    Classifier();
+};
 
 #endif /* defined(__randomForestsEdgeDetection__classifier__) */
