@@ -57,6 +57,7 @@ public:
     std::vector<Cluster> clusters;
     std::unordered_map<int16_t, Cluster *> hashmap;
     std::map<std::pair<int16_t, int16_t>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
+    std::vector<Point2i> endings;
     
     void clear();
     void add(Cluster);
@@ -83,9 +84,9 @@ class ClusteringEngine {
     ClusterStorage storage;
     
     bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
-    void remapCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
+    void remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
-    void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
+    bool clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
     static int quantizeDirection(float radians);
     Mat getDirections();

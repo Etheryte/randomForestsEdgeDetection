@@ -92,7 +92,7 @@ int main(int argc, const char * argv[]) {
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization);
         
-        if (false) {
+        if (true) {
             imshow("", directionVisualization);
             while(wait());
             continue;

@@ -79,12 +79,14 @@ ClusterStorage::ClusterStorage() {
     clusters = std::vector<Cluster>();
     hashmap = std::unordered_map<int16_t, Cluster *>();
     crossings = std::map<std::pair<int16_t, int16_t>, size_t>();
+    endings = std::vector<Point2i>();
 };
 
 void ClusterStorage::clear() {
     clusters.clear();
     hashmap.clear();
     crossings.clear();
+    endings.clear();
 }
 
 void ClusterStorage::add(Cluster cluster) {
@@ -137,7 +139,7 @@ void ClusteringEngine::computeDirections() {
 
 void ClusteringEngine::visualizeDirections(Mat * visualization) {
     visualization->release();
-    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, int8_t(0));
+    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
     for (unsigned int y = 0; y < edgeData.rows; ++y) {
         float * p_directionData = directionData.ptr<float>(y);
         float * p_edgeData = narrowEdgeData.ptr<float>(y);
@@ -154,16 +156,17 @@ bool ClusteringEngine::outOfBounds (Mat * frame, unsigned int x, unsigned int y)
     return (x <= 0 || y <= 0 || x >= (* frame).cols || y >= (* frame).rows);
 };
 
-void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
-    if (cluster->mass >= maxClusterMass) return;
+//Did we find a new point at given coordinates?
+bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
+    if (cluster->mass >= maxClusterMass) return false;
     float * p_edgeData = narrowEdgeData.ptr<float>(y);
-    if (outOfBounds(&directionData, x, y)) return;
-    if (p_edgeData[x] < continueThresh) return;
+    if (outOfBounds(&directionData, x, y)) return false;
+    if (p_edgeData[x] < continueThresh) return false;
     float * p_directionData = directionData.ptr<float>(y);
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     
     //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
-    if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
+    if (p_clusterData[x] != UNDEFINED_CLUSTER) return false;
     
     float direction = p_directionData[x];
     if (originalDirection == UNDEFINED_DIRECTION) {
@@ -173,12 +176,12 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     bool quantized = true;
     //Quantized creates more smaller clusters, degree-based creates larger ones but doesn't give good connections
     int quantizedDirection = quantizeDirection(direction);
-    int8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
-    if (quantized && (hammingWeight(tmp) == 2 || tmp == 0b0101 || tmp == 0b1010)) return;
+    uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
+    if (quantized && (hammingWeight(tmp) == 2 || tmp == 0b0101 || tmp == 0b1010)) return false;
     
     //Absolute degree-based cluster termination
     float delta = fabs(fmod(direction - originalDirection, M_PI));
-    if (!quantized && delta > M_PI / 4.0) return;
+    if (!quantized && delta > M_PI / 4.0) return false;
     
     //Relative degree-based cluster termination
     if (previousDirection != UNDEFINED_DIRECTION) {
@@ -187,7 +190,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         //If the pixel is very strong, don't care for direction?
         //Do we want edges squared or not?
         if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edgeData[x]) {
-            return;
+            return false;
         }
         //Update largest found deviation from direction
         cluster->curvature = fmaxf(delta, cluster->curvature);
@@ -211,45 +214,74 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
+    bool ending = false;
     //Proceed left and right first as the memory addresses are sequencial
     for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
         for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-            clusterNeighbours(_x, _y, cluster, originalDirection, direction);
+            ending |= clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
+    if (ending == false) {
+        storage.endings.push_back(Point2i(x, y));
+    }
+    return true;
 };
 
 //Also finds crossings
-void ClusteringEngine::remapCluster(unsigned int x, unsigned int y, int16_t from, int16_t to) {
+void ClusteringEngine::remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to) {
     assert(from != to);
     if (outOfBounds(&clusterData, x, y)) return;
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     if (p_clusterData[x] == from) {
         p_clusterData[x] = to;
+        
+        Cluster * toCluster = storage.getByUid(to);
+        if (toCluster != NULL) {
+            //If we're merging clusters, update rough cluster bounds
+            toCluster->maxX = MAX(toCluster->maxX, x);
+            toCluster->minX = MIN(toCluster->minX, x);
+            toCluster->maxY = MAX(toCluster->maxY, y);
+            toCluster->minY = MIN(toCluster->minY, y);
+        }
+        
         for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
             for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-                remapCluster(_x, _y, from, to);
+                remapAnalyzeCluster(_x, _y, from, to);
             }
+        }
+    }
+    //If we have a crossing, keep track of it
+    if (to != UNDEFINED_CLUSTER && p_clusterData[x] != UNDEFINED_CLUSTER && to != p_clusterData[x]) {
+        int16_t smallerUid = MIN(to, p_clusterData[x]);
+        int16_t largerUid = MAX(to, p_clusterData[x]);
+        std::pair<int16_t, int16_t> location = std::pair<int16_t, int16_t>(smallerUid, largerUid);
+        std::map<std::pair<int16_t, int16_t>, size_t>::iterator it = storage.crossings.find(location);
+        if (it != storage.crossings.end()) {
+            //Found
+            it->second += 1;
+        } else {
+            //Not found, add it
+            storage.crossings[location] = 0;
         }
     }
 }
 
 bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
     bool merged = false;
-    return merged;
-    //Check if it should be merged to another cluster, if so, do it
+    //Check if it should be merged to another cluster
     for (std::map<std::pair<int16_t, int16_t>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
-        //If this is a mapping for this cluster AND the overlap is over a threshold
-        //TODO: Only if cluster average angle is similar, any other checks? OR if angle is similar?
         Cluster * mergeInto = storage.getByUid(it->first.first);
-        //printf("%f %f\n", cluster->averageDirection, mergeInto->averageDirection);
-        if ((it->first.second == cluster->uid) && (it->second > 50)) {
+        int16_t compareToUid = it->first.second;
+        Cluster * compareTo = storage.getByUid(compareToUid);
+        size_t overlap = it->second;
+        //Merge clusters if there's enough overlap
+        if ((it->first.second == cluster->uid) && (overlap > 20)) {
             merged = true;
             //Change this cluster to the one found before, value might differ due to previous joins
-            int x = cluster->point.x;
-            int y = cluster->point.y;
+            unsigned int x = cluster->point.x;
+            unsigned int y = cluster->point.y;
             int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
-            remapCluster(x, y, p_clusterData[x], it->first.first);
+            remapAnalyzeCluster(x, y, p_clusterData[x], it->first.first);
             mergeInto->mass += cluster->mass;
             //mergeInto->directions.insert(mergeInto->directions.end(), cluster->directions.begin(), cluster->directions.end());
             mergeInto->computeGeometrics();
@@ -280,16 +312,21 @@ void ClusteringEngine::computeClusters() {
                 if (cluster.mass > 0) {
                     storage.crossings.clear();
                     //We need an initial run to discover crossings
-                    remapCluster(x, y, TEMPORARY_CLUSTER, cluster.uid);
-                    storage.add(cluster);
+                    remapAnalyzeCluster(x, y, TEMPORARY_CLUSTER, cluster.uid);
+                    bool merged = checkForOverlap(&cluster);
+                    if (!merged) {
+                        storage.add(cluster);
+                    } else {
+                        mergeCount++;
+                    }
                 } else {
-                    remapCluster(x, y, TEMPORARY_CLUSTER, UNDEFINED_CLUSTER);
+                    remapAnalyzeCluster(x, y, TEMPORARY_CLUSTER, UNDEFINED_CLUSTER);
                 }
             }
         }
     }
     //Log info
-    printf("merges:%2zu  clusters:%3lu\n", mergeCount, storage.size());
+    printf("merges:%2zu  clusters:%3lu  endings:%2zu\n", mergeCount, storage.size(), storage.endings.size());
     
     narrowEdgeData.release();
     tmp.copyTo(narrowEdgeData);
@@ -298,7 +335,7 @@ void ClusteringEngine::computeClusters() {
 
 void ClusteringEngine::visualizeClusters(Mat * visualization) {
     visualization->release();
-    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, int8_t(0));
+    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
     if (storage.size() == 0) return;
     //Draw clusters
     for (unsigned int y = 0; y < visualization->rows; ++y) {
@@ -308,18 +345,29 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         for (unsigned int x = 0; x < visualization->cols; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                if (true) {
-                    setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
-                } else {
-                    Cluster cluster = storage[p_clusterData[x]];
-                    if (cluster.mass < 10) {
-                        setColor(&p_visualization[x], RED);
-                    } else {
-                        setColor(&p_visualization[x], roughOpacity(WHITE, 0.5));
+                switch (0) {
+                    case 0:
+                        setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
+                        break;
+                    case 1:
+                        setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
+                        break;
+                    case 2:
+                        setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
+                        break;
+                    case 3: {
+                        Cluster cluster = storage[p_clusterData[x]];
+                        if (cluster.mass < 10) {
+                            setColor(&p_visualization[x], RED);
+                        } else {
+                            setColor(&p_visualization[x], roughOpacity(WHITE, 0.5));
+                        }
+                        break;
                     }
+                    default:
+                        setColor(&p_visualization[x], WHITE);
+                        break;
                 }
-                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
-                //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
             }
         }
     }
@@ -344,7 +392,11 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
             }
         }
     }
-    //areSimilar(storage[0], storage[1]);
+    //Draw endings
+    for (std::vector<Point2i>::iterator it = storage.endings.begin(); it != storage.endings.end(); ++it) {
+        Point2i p = (* it);
+        //circle(* visualization, p, 0, RED);
+    }
 }
 
 ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, float minClusterMass, float maxClusterMass) {
