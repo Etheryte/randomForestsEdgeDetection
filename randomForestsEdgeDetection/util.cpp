@@ -59,8 +59,8 @@ void setRandomColor (Vec3b * pixel, int seed) {
     float g = rand() % 255 + 1;
     float r = rand() % 255 + 1;
     /*b = 255;
-    g = 255;
-    r = 255;*/
+     g = 255;
+     r = 255;*/
     pixel[0][0] = b;
     pixel[0][1] = g;
     pixel[0][2] = r;
@@ -73,8 +73,28 @@ Vec3b getRandomColor (int seed) {
     color[1] = rand() % 255 + 1;
     color[2] = rand() % 255 + 1;
     /*color[0] = 255;
-    color[1] = 255;
-    color[2] = 255;*/
+     color[1] = 255;
+     color[2] = 255;*/
+    return color;
+}
+
+Vec3b getColorByMass (float mass) {
+    Vec3b color;
+    float ratio = fminf(mass / 500, 1.0);
+    switch (1) {
+        case 0:
+            color[0] = (1.0 - ratio) * 255;
+            color[1] = 0;
+            color[2] = ratio * 255;
+            break;
+        case 1:
+            color[0] = ratio * 255;
+            color[1] = ratio * 255;
+            color[2] = ratio * 255;
+            break;
+        default:
+            break;
+    }
     return color;
 }
 
@@ -110,7 +130,9 @@ void combineVisualizations (Mat frame, Mat edges, Mat directions, Mat clusters, 
     clusters.copyTo((* output)(Rect(width, height, width, height)));
 }
 
-
+float distance(Point2i a, Point2i b) {
+    return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2));
+}
 
 
 

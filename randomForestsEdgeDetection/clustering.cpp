@@ -79,14 +79,12 @@ ClusterStorage::ClusterStorage() {
     clusters = std::vector<Cluster>();
     hashmap = std::unordered_map<int16_t, Cluster *>();
     crossings = std::map<std::pair<int16_t, int16_t>, size_t>();
-    endings = std::vector<Point2i>();
 };
 
 void ClusterStorage::clear() {
     clusters.clear();
     hashmap.clear();
     crossings.clear();
-    endings.clear();
 }
 
 void ClusterStorage::add(Cluster cluster) {
@@ -214,15 +212,20 @@ bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
-    bool ending = false;
+    bool nested = false;
     //Proceed left and right first as the memory addresses are sequencial
     for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
         for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-            ending |= clusterNeighbours(_x, _y, cluster, originalDirection, direction);
+            nested |= clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
-    if (ending == false) {
-        storage.endings.push_back(Point2i(x, y));
+    //TODO: Update endings for mergers
+    //Alternative ending search
+    if (distance(Point2i(x, y), cluster->endingA) > distance(cluster->endingB, cluster->endingA)) {
+        cluster->endingB = Point2i(x,y);
+    }
+    if (distance(Point2i(x, y), cluster->endingB) > distance(cluster->endingA, cluster->endingB)) {
+        cluster->endingA = Point2i(x,y);
     }
     return true;
 };
@@ -305,6 +308,8 @@ void ClusteringEngine::computeClusters() {
                 Cluster cluster = Cluster((int) storage.size());
                 cluster.point.x = x;
                 cluster.point.y = y;
+                cluster.endingA = Point2i(x, y);
+                cluster.endingB = Point2i(x, y);
                 clusterNeighbours(x, y, &cluster, UNDEFINED_DIRECTION, UNDEFINED_DIRECTION);
                 cluster.computeGeometrics();
                 //If the cluster is large enough, keep it
@@ -326,7 +331,7 @@ void ClusteringEngine::computeClusters() {
         }
     }
     //Log info
-    printf("merges:%2zu  clusters:%3lu  endings:%2zu\n", mergeCount, storage.size(), storage.endings.size());
+    printf("merges:%2zu  clusters:%3lu\n", mergeCount, storage.size());
     
     narrowEdgeData.release();
     tmp.copyTo(narrowEdgeData);
@@ -345,17 +350,20 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         for (unsigned int x = 0; x < visualization->cols; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                switch (0) {
+                switch (1) {
                     case 0:
-                        setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
+                        setColor(&p_visualization[x], roughOpacity(WHITE, 0.25));
                         break;
                     case 1:
-                        setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
+                        setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
                         break;
                     case 2:
+                        setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
+                        break;
+                    case 3:
                         setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
                         break;
-                    case 3: {
+                    case 4: {
                         Cluster cluster = storage[p_clusterData[x]];
                         if (cluster.mass < 10) {
                             setColor(&p_visualization[x], RED);
@@ -364,8 +372,11 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
                         }
                         break;
                     }
+                    case 5: {
+                        Cluster cluster = storage[p_clusterData[x]];
+                        setColor(&p_visualization[x], getColorByMass(cluster.mass));
+                    }
                     default:
-                        setColor(&p_visualization[x], WHITE);
                         break;
                 }
             }
@@ -374,6 +385,12 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
+        if (cluster.mass > minClusterMass) {
+            circle(* visualization, cluster.endingA, 2, WHITE, -1);
+            circle(* visualization, cluster.endingA, 1, getRandomColor(cluster.uid), -1);
+            circle(* visualization, cluster.endingB, 2, WHITE, -1);
+            circle(* visualization, cluster.endingB, 1, getRandomColor(cluster.uid), -1);
+        }
         if (false && cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
             //TODO: Does curvature tell us anything?
@@ -391,11 +408,6 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
                 rectangle(* visualization, Point(cluster.minX, cluster.minY), Point(cluster.maxX, cluster.maxY), color);
             }
         }
-    }
-    //Draw endings
-    for (std::vector<Point2i>::iterator it = storage.endings.begin(); it != storage.endings.end(); ++it) {
-        Point2i p = (* it);
-        //circle(* visualization, p, 0, RED);
     }
 }
 

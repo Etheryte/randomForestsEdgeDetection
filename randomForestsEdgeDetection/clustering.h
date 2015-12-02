@@ -46,6 +46,8 @@ public:
     Point2i point;
     std::vector<float> directions;
     float averageDirection;
+    Point2i endingA;
+    Point2i endingB;
     
     void computeGeometrics ();
     std::string toString();
@@ -57,7 +59,6 @@ public:
     std::vector<Cluster> clusters;
     std::unordered_map<int16_t, Cluster *> hashmap;
     std::map<std::pair<int16_t, int16_t>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
-    std::vector<Point2i> endings;
     
     void clear();
     void add(Cluster);
