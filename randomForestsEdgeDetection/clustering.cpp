@@ -306,15 +306,18 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         for (unsigned int x = 0; x < visualization->cols; ++x) {
-            //assert(p_clusterData[x] != TEMPORARY_CLUSTER);
+            assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
-                /*Cluster cluster = storage[p_clusterData[x]];
-                 if (cluster.mass < 10) {
-                 setColor(&p_visualization[x], RED);
-                 } else {
-                 setColor(&p_visualization[x], roughOpacity(WHITE, 0.5));
-                 }*/
+                if (true) {
+                    setColor(&p_visualization[x], getRandomColor(p_clusterData[x]));
+                } else {
+                    Cluster cluster = storage[p_clusterData[x]];
+                    if (cluster.mass < 10) {
+                        setColor(&p_visualization[x], RED);
+                    } else {
+                        setColor(&p_visualization[x], roughOpacity(WHITE, 0.5));
+                    }
+                }
                 //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), p_edgeData[x]));
                 //setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
             }
