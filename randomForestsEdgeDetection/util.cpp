@@ -130,6 +130,7 @@ void combineVisualizations (Mat frame, Mat edges, Mat directions, Mat clusters, 
     clusters.copyTo((* output)(Rect(width, height, width, height)));
 }
 
+//TODO: Do we want to estimate here to reduce computational cost?
 float distance(Point2i a, Point2i b) {
     return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2));
 }
