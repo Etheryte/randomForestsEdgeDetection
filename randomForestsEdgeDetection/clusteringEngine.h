@@ -1,13 +1,13 @@
 //
-//  clustering.h
+//  clusteringEngine.h
 //  randomForestsEdgeDetection
 //
 //  Created by eth on 29/10/15.
 //  Copyright (c) 2015 eth. All rights reserved.
 //
 
-#ifndef __randomForestsEdgeDetection__clustering__
-#define __randomForestsEdgeDetection__clustering__
+#ifndef __randomForestsEdgeDetection__clusteringEngine__
+#define __randomForestsEdgeDetection__clusteringEngine__
 
 #include <opencv2/core/core.hpp>
 #include <opencv2/core/utility.hpp>
@@ -22,37 +22,12 @@
 #include <map>
 #include <utility>
 
+#include "constants.h"
+#include "cluster.h"
 #include "util.h"
 
 using namespace cv;
 using namespace cv::ximgproc;
-
-class Cluster {
-public:
-    int16_t uid;
-    float mass;
-    float curvature;
-    uint8_t foundDirections;
-    //Naíve uncontainment check: if any of these is out of bounds, then the cluster is not fully contained by the viewport
-    unsigned int maxX;
-    unsigned int minX;
-    unsigned int maxY;
-    unsigned int minY;
-    //Based on above, give rough info about clusters
-    unsigned int width;
-    unsigned int height;
-    Point2i center; //NB! This might not contain a data point
-    //A single point included in the cluster, randomity doesn't matter to us here
-    Point2i point;
-    std::vector<float> directions;
-    float averageDirection;
-    Point2i endingA;
-    Point2i endingB;
-    
-    void computeGeometrics ();
-    std::string toString();
-    Cluster (int16_t guid);
-};
 
 class ClusterStorage {
 public:
@@ -87,7 +62,7 @@ class ClusteringEngine {
     bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
     void remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
-    bool clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
+    void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
     static int quantizeDirection(float radians);
     Mat getDirections();
@@ -102,4 +77,4 @@ public:
     ClusteringEngine(float startThresh, float continueThresh, float minClusterMass, float maxClusterMass);
 };
 
-#endif /* defined(__randomForestsEdgeDetection__clustering__) */
+#endif /* defined(__randomForestsEdgeDetection__clusteringEngine__) */

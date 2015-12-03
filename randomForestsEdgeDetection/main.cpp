@@ -19,7 +19,8 @@
 #include "util.h"
 #include "camera.h"
 #include "fps.h"
-#include "clustering.h"
+#include "clusteringEngine.h"
+#include "classifier.h"
 #include "thinning.h"
 
 #include <assert.h>

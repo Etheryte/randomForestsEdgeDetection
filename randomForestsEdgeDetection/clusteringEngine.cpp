@@ -1,21 +1,13 @@
 //
-//  clustering.cpp
+//  clusteringEngine.cpp
 //  randomForestsEdgeDetection
 //
 //  Created by eth on 29/10/15.
 //  Copyright (c) 2015 eth. All rights reserved.
 //
 
-#include "clustering.h"
+#include "clusteringEngine.h"
 
-//We simply need a placeholder value we will never have (radians)
-#define UNDEFINED_DIRECTION -100
-#define UNDEFINED_CLUSTER -100
-#define TEMPORARY_CLUSTER -10
-
-#define WHITE Vec3b(255,255,255)
-#define BLACK Vec3b(0,0,0)
-#define RED   Vec3b(0,0,255)
 
 //Divide all directions into 4 categories, the compiler will happily optimize this
 int ClusteringEngine::quantizeDirection(float radians) {
@@ -26,50 +18,6 @@ int ClusteringEngine::quantizeDirection(float radians) {
     if ( (radians >= 5 * STEP && radians < 7 * STEP)  || (radians >= -3 * STEP && radians < -1 * STEP) ) return 3;
     return -1;
 };
-
-/*
- GENERIC CLUSTER
- */
-
-void Cluster::computeGeometrics () {
-    width = maxX - minX;
-    height = maxY - minY;
-    center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
-    if (directions.size() > 0) {
-        int occurrences[4] = {0,0,0,0};
-        for (std::vector<float>::iterator it = directions.begin(); it != directions.end(); ++it) {
-            occurrences[ClusteringEngine::quantizeDirection(* it)] += 1;
-        }
-        int maxCount = 0;
-        for (int i = 0; i < 4; i++) {
-            if (occurrences[i] > occurrences[maxCount]) maxCount = i;
-        }
-        //NOT GOOD?
-        averageDirection = M_PI * (maxCount) * 1.0/4.0;
-    }
-}
-
-std::string Cluster::toString() {
-    std::ostringstream oss;
-    oss << "cluster " << int(uid) << ": mass = " << mass << " curvature = " << curvature;
-    return oss.str();
-}
-
-Cluster::Cluster (int16_t guid) {
-    mass = 0.0;
-    uid = guid;
-    curvature = 0.0;
-    point = Point2i();
-    maxX = 0;
-    minX = INT_MAX;
-    maxY = 0;
-    minY = INT_MAX;
-    width = 0;
-    height = 0;
-    foundDirections = 0;
-    directions = std::vector<float>();
-    averageDirection = UNDEFINED_DIRECTION;
-}
 
 /*
  CLUSTER STORAGE
@@ -155,16 +103,16 @@ bool ClusteringEngine::outOfBounds (Mat * frame, unsigned int x, unsigned int y)
 };
 
 //Did we find a new point at given coordinates?
-bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
-    if (cluster->mass >= maxClusterMass) return false;
+void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
+    if (cluster->mass >= maxClusterMass) return;
     float * p_edgeData = narrowEdgeData.ptr<float>(y);
-    if (outOfBounds(&directionData, x, y)) return false;
-    if (p_edgeData[x] < continueThresh) return false;
+    if (outOfBounds(&directionData, x, y)) return;
+    if (p_edgeData[x] < continueThresh) return;
     float * p_directionData = directionData.ptr<float>(y);
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     
     //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
-    if (p_clusterData[x] != UNDEFINED_CLUSTER) return false;
+    if (p_clusterData[x] != UNDEFINED_CLUSTER) return;
     
     float direction = p_directionData[x];
     if (originalDirection == UNDEFINED_DIRECTION) {
@@ -175,11 +123,11 @@ bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     //Quantized creates more smaller clusters, degree-based creates larger ones but doesn't give good connections
     int quantizedDirection = quantizeDirection(direction);
     uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
-    if (quantized && (hammingWeight(tmp) == 2 || tmp == 0b0101 || tmp == 0b1010)) return false;
+    if (quantized && (hammingWeight(tmp) == 2 || tmp == 0b0101 || tmp == 0b1010)) return;
     
     //Absolute degree-based cluster termination
     float delta = fabs(fmod(direction - originalDirection, M_PI));
-    if (!quantized && delta > M_PI / 4.0) return false;
+    if (!quantized && delta > M_PI / 4.0) return;
     
     //Relative degree-based cluster termination
     if (previousDirection != UNDEFINED_DIRECTION) {
@@ -188,15 +136,13 @@ bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
         //If the pixel is very strong, don't care for direction?
         //Do we want edges squared or not?
         if (!quantized && (modifier * delta) / (M_PI / 4.0) > p_edgeData[x]) {
-            return false;
+            return;
         }
         //Update largest found deviation from direction
         cluster->curvature = fmaxf(delta, cluster->curvature);
     }
     
     cluster->foundDirections = tmp;
-    
-    cluster->directions.push_back(quantizeDirection(p_directionData[x]));
     
     //Do we want mass as integer or not?
     cluster->mass += 1; //p_edgeData[x]
@@ -212,22 +158,20 @@ bool ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     //If the cluster is large enough, we update it later
     p_clusterData[x] = TEMPORARY_CLUSTER;
     
-    bool nested = false;
     //Proceed left and right first as the memory addresses are sequencial
     for (unsigned int _y = y - 1; _y <= y + 1; _y++) {
         for (unsigned int _x = x - 1; _x <= x + 1; _x++) {
-            nested |= clusterNeighbours(_x, _y, cluster, originalDirection, direction);
+            clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
     //TODO: Update endings for mergers
-    //Alternative ending search
-    if (distance(Point2i(x, y), cluster->endingA) > distance(cluster->endingB, cluster->endingA)) {
+    //Find cluster endings
+    float abDistance = distance(cluster->endingA, cluster->endingB);
+    if (distance(Point2i(x, y), cluster->endingA) > abDistance) {
         cluster->endingB = Point2i(x,y);
-    }
-    if (distance(Point2i(x, y), cluster->endingB) > distance(cluster->endingA, cluster->endingB)) {
+    } else if (distance(Point2i(x, y), cluster->endingB) > abDistance) {
         cluster->endingA = Point2i(x,y);
     }
-    return true;
 };
 
 //Also finds crossings
@@ -286,7 +230,6 @@ bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
             int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
             remapAnalyzeCluster(x, y, p_clusterData[x], it->first.first);
             mergeInto->mass += cluster->mass;
-            //mergeInto->directions.insert(mergeInto->directions.end(), cluster->directions.begin(), cluster->directions.end());
             mergeInto->computeGeometrics();
         }
     }
@@ -350,7 +293,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         for (unsigned int x = 0; x < visualization->cols; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                switch (1) {
+                switch (0) {
                     case 0:
                         setColor(&p_visualization[x], roughOpacity(WHITE, 0.25));
                         break;
@@ -386,6 +329,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
         if (cluster.mass > minClusterMass) {
+            line(* visualization, cluster.endingA, cluster.endingB, WHITE);
             circle(* visualization, cluster.endingA, 2, WHITE, -1);
             circle(* visualization, cluster.endingA, 1, getRandomColor(cluster.uid), -1);
             circle(* visualization, cluster.endingB, 2, WHITE, -1);

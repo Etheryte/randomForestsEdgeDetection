@@ -9,7 +9,7 @@
 #ifndef __randomForestsEdgeDetection__classifier__
 #define __randomForestsEdgeDetection__classifier__
 
-#include "clustering.h"
+#include "clusteringEngine.h"
 
 enum Classes {
     UNDEFINED = -1,
@@ -18,8 +18,11 @@ enum Classes {
 
 class Classifier {
 public:
+    Mat clusterData;
     void classifyClusters(ClusterStorage * storage);
     bool possibleGoalPost(Cluster * cluster);
+    void visualizeClasses(Mat * visualization);
+    void newDatasource(Mat * clusterData);
     Classifier();
 };
 

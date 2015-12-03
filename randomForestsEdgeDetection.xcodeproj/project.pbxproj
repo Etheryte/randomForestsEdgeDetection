@@ -7,13 +7,14 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A19B0CD1C10393900033E24 /* cluster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A19B0CB1C10393900033E24 /* cluster.cpp */; };
 		7A47882D1C03D9EB0037EC54 /* classifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A47882B1C03D9EB0037EC54 /* classifier.cpp */; };
 		7A4F8F241BDA9106001F1C3E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F231BDA9106001F1C3E /* main.cpp */; };
 		7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2A1BDA92B2001F1C3E /* camera.cpp */; };
 		7A4F8F2F1BDBC0F0001F1C3E /* fps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2D1BDBC0F0001F1C3E /* fps.cpp */; };
 		7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F301BDBC7CD001F1C3E /* util.cpp */; };
 		7A6F98321BF006BA00D01D84 /* thinning.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A6F98301BF006BA00D01D84 /* thinning.cpp */; };
-		7ADA249A1BE2C2C3006F9BC4 /* clustering.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */; };
+		7ADA249A1BE2C2C3006F9BC4 /* clusteringEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */; };
 		7ADB002B1BED05C60044BAD2 /* TODO.md in Sources */ = {isa = PBXBuildFile; fileRef = 7ADB002A1BED05C60044BAD2 /* TODO.md */; };
 /* End PBXBuildFile section */
 
@@ -30,6 +31,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7A19B0CB1C10393900033E24 /* cluster.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cluster.cpp; sourceTree = "<group>"; };
+		7A19B0CC1C10393900033E24 /* cluster.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cluster.h; sourceTree = "<group>"; };
+		7A19B0CE1C1039DD00033E24 /* constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = constants.h; sourceTree = "<group>"; };
 		7A47882B1C03D9EB0037EC54 /* classifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = classifier.cpp; sourceTree = "<group>"; };
 		7A47882C1C03D9EB0037EC54 /* classifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = classifier.h; sourceTree = "<group>"; };
 		7A4F8F201BDA9106001F1C3E /* randomForestsEdgeDetection */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = randomForestsEdgeDetection; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -42,8 +46,8 @@
 		7A4F8F311BDBC7CD001F1C3E /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
 		7A6F98301BF006BA00D01D84 /* thinning.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = thinning.cpp; sourceTree = "<group>"; };
 		7A6F98311BF006BA00D01D84 /* thinning.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = thinning.h; sourceTree = "<group>"; };
-		7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clustering.cpp; sourceTree = "<group>"; };
-		7ADA24991BE2C2C3006F9BC4 /* clustering.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clustering.h; sourceTree = "<group>"; };
+		7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clusteringEngine.cpp; sourceTree = "<group>"; };
+		7ADA24991BE2C2C3006F9BC4 /* clusteringEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clusteringEngine.h; sourceTree = "<group>"; };
 		7ADB002A1BED05C60044BAD2 /* TODO.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = TODO.md; path = randomForestsEdgeDetection/TODO.md; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -85,10 +89,13 @@
 				7A4F8F2E1BDBC0F0001F1C3E /* fps.h */,
 				7A4F8F301BDBC7CD001F1C3E /* util.cpp */,
 				7A4F8F311BDBC7CD001F1C3E /* util.h */,
-				7ADA24981BE2C2C3006F9BC4 /* clustering.cpp */,
-				7ADA24991BE2C2C3006F9BC4 /* clustering.h */,
+				7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */,
+				7ADA24991BE2C2C3006F9BC4 /* clusteringEngine.h */,
+				7A19B0CB1C10393900033E24 /* cluster.cpp */,
+				7A19B0CC1C10393900033E24 /* cluster.h */,
 				7A47882B1C03D9EB0037EC54 /* classifier.cpp */,
 				7A47882C1C03D9EB0037EC54 /* classifier.h */,
+				7A19B0CE1C1039DD00033E24 /* constants.h */,
 				7A6F98301BF006BA00D01D84 /* thinning.cpp */,
 				7A6F98311BF006BA00D01D84 /* thinning.h */,
 			);
@@ -154,10 +161,11 @@
 				7ADB002B1BED05C60044BAD2 /* TODO.md in Sources */,
 				7A4F8F2F1BDBC0F0001F1C3E /* fps.cpp in Sources */,
 				7A6F98321BF006BA00D01D84 /* thinning.cpp in Sources */,
+				7A19B0CD1C10393900033E24 /* cluster.cpp in Sources */,
 				7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */,
 				7A47882D1C03D9EB0037EC54 /* classifier.cpp in Sources */,
 				7A4F8F241BDA9106001F1C3E /* main.cpp in Sources */,
-				7ADA249A1BE2C2C3006F9BC4 /* clustering.cpp in Sources */,
+				7ADA249A1BE2C2C3006F9BC4 /* clusteringEngine.cpp in Sources */,
 				7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
