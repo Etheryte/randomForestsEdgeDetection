@@ -13,7 +13,6 @@
 #include <stdbool.h>
 #include <ctime>
 
-
 class FpsCounter {
     int frames;
     clock_t begin_time;

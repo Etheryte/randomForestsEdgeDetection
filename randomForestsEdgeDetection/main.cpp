@@ -21,7 +21,6 @@
 #include "fps.h"
 #include "clusteringEngine.h"
 #include "classifier.h"
-#include "thinning.h"
 
 #include <assert.h>
 #include <time.h>

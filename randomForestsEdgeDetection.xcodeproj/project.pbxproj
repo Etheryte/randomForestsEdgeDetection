@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		7A19B0CD1C10393900033E24 /* cluster.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A19B0CB1C10393900033E24 /* cluster.cpp */; };
+		7A19B0D11C103AB600033E24 /* clusterStorage.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A19B0CF1C103AB600033E24 /* clusterStorage.cpp */; };
 		7A47882D1C03D9EB0037EC54 /* classifier.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A47882B1C03D9EB0037EC54 /* classifier.cpp */; };
 		7A4F8F241BDA9106001F1C3E /* main.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F231BDA9106001F1C3E /* main.cpp */; };
 		7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2A1BDA92B2001F1C3E /* camera.cpp */; };
@@ -33,6 +34,8 @@
 		7A19B0CB1C10393900033E24 /* cluster.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = cluster.cpp; sourceTree = "<group>"; };
 		7A19B0CC1C10393900033E24 /* cluster.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = cluster.h; sourceTree = "<group>"; };
 		7A19B0CE1C1039DD00033E24 /* constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = constants.h; sourceTree = "<group>"; };
+		7A19B0CF1C103AB600033E24 /* clusterStorage.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clusterStorage.cpp; sourceTree = "<group>"; };
+		7A19B0D01C103AB600033E24 /* clusterStorage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clusterStorage.h; sourceTree = "<group>"; };
 		7A47882B1C03D9EB0037EC54 /* classifier.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = classifier.cpp; sourceTree = "<group>"; };
 		7A47882C1C03D9EB0037EC54 /* classifier.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = classifier.h; sourceTree = "<group>"; };
 		7A4F8F201BDA9106001F1C3E /* randomForestsEdgeDetection */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = randomForestsEdgeDetection; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -88,6 +91,8 @@
 				7A4F8F311BDBC7CD001F1C3E /* util.h */,
 				7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */,
 				7ADA24991BE2C2C3006F9BC4 /* clusteringEngine.h */,
+				7A19B0CF1C103AB600033E24 /* clusterStorage.cpp */,
+				7A19B0D01C103AB600033E24 /* clusterStorage.h */,
 				7A19B0CB1C10393900033E24 /* cluster.cpp */,
 				7A19B0CC1C10393900033E24 /* cluster.h */,
 				7A47882B1C03D9EB0037EC54 /* classifier.cpp */,
@@ -160,6 +165,7 @@
 				7A47882D1C03D9EB0037EC54 /* classifier.cpp in Sources */,
 				7A4F8F241BDA9106001F1C3E /* main.cpp in Sources */,
 				7ADA249A1BE2C2C3006F9BC4 /* clusteringEngine.cpp in Sources */,
+				7A19B0D11C103AB600033E24 /* clusterStorage.cpp in Sources */,
 				7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

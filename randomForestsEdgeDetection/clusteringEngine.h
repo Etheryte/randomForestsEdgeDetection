@@ -17,34 +17,14 @@
 #include <opencv2/ximgproc.hpp>
 
 #include <math.h>
-#include <algorithm>
-#include <unordered_map>
-#include <map>
-#include <utility>
 
 #include "constants.h"
 #include "cluster.h"
+#include "clusterStorage.h"
 #include "util.h"
 
 using namespace cv;
 using namespace cv::ximgproc;
-
-class ClusterStorage {
-public:
-    std::vector<Cluster> clusters;
-    std::unordered_map<int16_t, Cluster *> hashmap;
-    std::map<std::pair<int16_t, int16_t>, size_t> crossings; //smaller cluster uid, larger cluster uid, count
-    
-    void clear();
-    void add(Cluster);
-    size_t size();
-    std::vector<Cluster>::iterator begin();
-    std::vector<Cluster>::iterator end();
-    Cluster operator[](const size_t index);
-    Cluster * getByUid(const int16_t uid);
-    
-    ClusterStorage();
-};
 
 class ClusteringEngine {
     //General info

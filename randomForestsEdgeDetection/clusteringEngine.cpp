@@ -19,51 +19,6 @@ int ClusteringEngine::quantizeDirection(float radians) {
     return -1;
 };
 
-/*
- CLUSTER STORAGE
- */
-
-ClusterStorage::ClusterStorage() {
-    clusters = std::vector<Cluster>();
-    hashmap = std::unordered_map<int16_t, Cluster *>();
-    crossings = std::map<std::pair<int16_t, int16_t>, size_t>();
-};
-
-void ClusterStorage::clear() {
-    clusters.clear();
-    hashmap.clear();
-    crossings.clear();
-}
-
-void ClusterStorage::add(Cluster cluster) {
-    clusters.push_back(cluster);
-    hashmap[cluster.uid] = &cluster;
-}
-
-size_t ClusterStorage::size() {
-    return clusters.size();
-}
-
-std::vector<Cluster>::iterator ClusterStorage::begin() {
-    return clusters.begin();
-}
-
-std::vector<Cluster>::iterator ClusterStorage::end() {
-    return clusters.end();
-}
-
-Cluster ClusterStorage::operator[](const size_t index) {
-    return clusters[index];
-}
-
-Cluster * ClusterStorage::getByUid(const int16_t uid) {
-    return hashmap[uid];
-}
-
-/*
- CLUSTERING ENGINE
- */
-
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
     Sobel(edgeData, frame_x, CV_32F, 1, 0);

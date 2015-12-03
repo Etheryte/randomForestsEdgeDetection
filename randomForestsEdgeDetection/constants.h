@@ -16,5 +16,7 @@
 #define WHITE Vec3b(255,255,255)
 #define BLACK Vec3b(0,0,0)
 #define RED   Vec3b(0,0,255)
+#define GREEN Vec3b(0,255,0)
+#define BLUE  Vec3b(255,0,0)
 
 #endif
