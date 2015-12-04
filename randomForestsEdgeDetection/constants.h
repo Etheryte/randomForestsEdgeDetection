@@ -13,10 +13,17 @@
 #define UNDEFINED_CLUSTER -100
 #define TEMPORARY_CLUSTER -10
 
-#define WHITE Vec3b(255,255,255)
-#define BLACK Vec3b(0,0,0)
-#define RED   Vec3b(0,0,255)
-#define GREEN Vec3b(0,255,0)
-#define BLUE  Vec3b(255,0,0)
+#define WHITE  Vec3b(255,255,255)
+#define BLACK  Vec3b(0,0,0)
+#define RED    Vec3b(0,0,255)
+#define GREEN  Vec3b(0,255,0)
+#define BLUE   Vec3b(255,0,0)
+#define YELLOW Vec3b(0,255,255)
+
+enum Classes {
+    UNDEFINED_CLASS = -1,
+    GOALPOST,
+    GOALCONNECTOR
+};
 
 #endif

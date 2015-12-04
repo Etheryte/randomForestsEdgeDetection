@@ -57,6 +57,7 @@ int main(int argc, const char * argv[]) {
     float minClusterMass = 20;
     float maxClusterMass = 5000;
     ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
+    Classifier classifier = Classifier(&clustering);
     
     namedWindow("", 1);
     setMouseCallback("", clickDebug, &clustering);
@@ -90,7 +91,7 @@ int main(int argc, const char * argv[]) {
         //Get weighed directions
         clustering.newDatasource(&edges);
         clustering.computeDirections();
-        clustering.visualizeDirections(&directionVisualization);
+        clustering.visualizeDirections(&directionVisualization, frame.size());
         
         if (false) {
             imshow("", directionVisualization);
@@ -100,7 +101,18 @@ int main(int argc, const char * argv[]) {
         
         //Cluster data
         clustering.computeClusters();
-        clustering.visualizeClusters(&visualization);
+        clustering.visualizeClusters(&clusterVisualization, frame.size());
+        
+        if (true) {
+            imshow("", clusterVisualization);
+            while(wait());
+            continue;
+        }
+        
+        classifier.classifyClusters();
+        classifier.visualizeClasses(&visualization, frame.size());
+        
+        //add(visualization, originalFrame, visualization);
         
         //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();

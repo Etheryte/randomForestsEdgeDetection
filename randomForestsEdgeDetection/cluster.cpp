@@ -12,18 +12,21 @@ void Cluster::computeGeometrics () {
     width = maxX - minX;
     height = maxY - minY;
     center = Point2i(minX + 0.5 * width, minY + 0.5 * height);
-    //TODO: Use endings for angle and length
+    length = distance(endingA, endingB);
+    averageDirection = fmodf(atan2f(endingA.y - endingB.y, endingA.x - endingB.x), M_PI);
+    if (averageDirection < 0) averageDirection += M_PI;
 }
 
 std::string Cluster::toString() {
     std::ostringstream oss;
-    oss << "cluster " << int(uid) << ": mass = " << mass << " curvature = " << curvature;
+    oss << "cluster " << int(uid) << ": mass = " << mass << " direction = " << averageDirection << " length = " << length;
     return oss.str();
 }
 
 Cluster::Cluster (int16_t guid) {
-    mass = 0.0;
     uid = guid;
+    classification = UNDEFINED_CLASS;
+    mass = 0.0;
     curvature = 0.0;
     point = Point2i();
     maxX = 0;

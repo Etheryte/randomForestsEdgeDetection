@@ -37,8 +37,8 @@ std::vector<Cluster>::iterator ClusterStorage::end() {
     return clusters.end();
 }
 
-Cluster ClusterStorage::operator[](const size_t index) {
-    return clusters[index];
+Cluster * ClusterStorage::operator[](const size_t index) {
+    return &clusters[index];
 }
 
 Cluster * ClusterStorage::getByUid(const int16_t uid) {

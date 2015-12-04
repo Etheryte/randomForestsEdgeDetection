@@ -32,26 +32,28 @@ class ClusteringEngine {
     Mat directionData;
     Mat edgeData;
     Mat narrowEdgeData;
-    Mat clusterData;
     float startThresh;
     float continueThresh;
     float minClusterMass;
     float maxClusterMass;
-    ClusterStorage storage;
     
     bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
     void remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
     void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
+    //TODO: Remove temporary public for classifier
+    Mat clusterData;
+    ClusterStorage storage;
+    
     static int quantizeDirection(float radians);
     Mat getDirections();
     void newDatasource(Mat * edges);
     void computeDirections();
     size_t size();
-    void visualizeDirections(Mat * visualization);
+    void visualizeDirections(Mat * visualization, Size size);
     void computeClusters();
-    void visualizeClusters(Mat * visualization);
+    void visualizeClusters(Mat * visualization, Size size);
     void clear();
     void getClusterInfoAt(unsigned int x, unsigned int y);
     ClusteringEngine(float startThresh, float continueThresh, float minClusterMass, float maxClusterMass);

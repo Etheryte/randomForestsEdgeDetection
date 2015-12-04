@@ -10,20 +10,16 @@
 #define __randomForestsEdgeDetection__classifier__
 
 #include "clusteringEngine.h"
-
-enum Classes {
-    UNDEFINED = -1,
-    GOALPOST
-};
+#include "util.h"
 
 class Classifier {
+    ClusterStorage * storage;
+    Mat * clusterData;
 public:
-    Mat clusterData;
-    void classifyClusters(ClusterStorage * storage);
+    void classifyClusters();
     bool possibleGoalPost(Cluster * cluster);
-    void visualizeClasses(Mat * visualization);
-    void newDatasource(Mat * clusterData);
-    Classifier();
+    void visualizeClasses(Mat * visualization, Size size);
+    Classifier(ClusteringEngine * clustering);
 };
 
 #endif /* defined(__randomForestsEdgeDetection__classifier__) */

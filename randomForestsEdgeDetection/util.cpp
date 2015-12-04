@@ -135,6 +135,9 @@ float distance(Point2i a, Point2i b) {
     return sqrtf(powf(a.x - b.x, 2) + powf(a.y - b.y, 2));
 }
 
+bool operator==(const Vec3b &lhs, const int &rhs) {
+    return (lhs[0] == rhs && lhs[1] == rhs && lhs[2] == rhs);
+}
 
 
 

@@ -34,5 +34,6 @@ int hammingWeight (uint8_t x);
 void resize(Mat frame, float factor);
 void combineVisualizations (Mat frame, Mat edges, Mat directions, Mat clusters, Mat * output);
 float distance(Point2i a, Point2i b);
+bool operator==(const Vec3b &lhs, const int &rhs);
 
 #endif /* defined(__randomForestsEdgeDetection__util__) */

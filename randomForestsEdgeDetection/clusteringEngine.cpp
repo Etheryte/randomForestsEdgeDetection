@@ -38,14 +38,14 @@ void ClusteringEngine::computeDirections() {
     }
 };
 
-void ClusteringEngine::visualizeDirections(Mat * visualization) {
+void ClusteringEngine::visualizeDirections(Mat * visualization, Size size) {
     visualization->release();
-    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
-    for (unsigned int y = 0; y < edgeData.rows; ++y) {
+    * visualization = Mat(size, CV_8UC3, uint8_t(0));
+    for (unsigned int y = 0; y < size.height; ++y) {
         float * p_directionData = directionData.ptr<float>(y);
         float * p_edgeData = narrowEdgeData.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < clusterData.cols; ++x) {
+        for (unsigned int x = 0; x < size.width; ++x) {
             if (p_edgeData[x] > 0) {
                 setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directionData[x])], p_edgeData[x]));
             }
@@ -119,8 +119,12 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
             clusterNeighbours(_x, _y, cluster, originalDirection, direction);
         }
     }
-    //TODO: Update endings for mergers
-    //Find cluster endings
+    //Ensure A and B are always oriented the same way to avoid -x--B-A- to -A--B-:- situations
+    if (cluster->endingA.x < cluster->endingB.x) {
+        auto tmp = cluster->endingA;
+        cluster->endingA = cluster->endingB;
+        cluster->endingB = tmp;
+    }
     float abDistance = distance(cluster->endingA, cluster->endingB);
     if (distance(Point2i(x, y), cluster->endingA) > abDistance) {
         cluster->endingB = Point2i(x,y);
@@ -173,8 +177,6 @@ bool ClusteringEngine::checkForOverlap(Cluster * cluster) {
     //Check if it should be merged to another cluster
     for (std::map<std::pair<int16_t, int16_t>, size_t>::iterator it = storage.crossings.begin(); it != storage.crossings.end(); ++it) {
         Cluster * mergeInto = storage.getByUid(it->first.first);
-        int16_t compareToUid = it->first.second;
-        Cluster * compareTo = storage.getByUid(compareToUid);
         size_t overlap = it->second;
         //Merge clusters if there's enough overlap
         if ((it->first.second == cluster->uid) && (overlap > 20)) {
@@ -236,19 +238,19 @@ void ClusteringEngine::computeClusters() {
     return;
 }
 
-void ClusteringEngine::visualizeClusters(Mat * visualization) {
+void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
     visualization->release();
-    * visualization = Mat(edgeData.rows, edgeData.cols, CV_8UC3, uint8_t(0));
+    * visualization = Mat(size, CV_8UC3, uint8_t(0));
     if (storage.size() == 0) return;
     //Draw clusters
-    for (unsigned int y = 0; y < visualization->rows; ++y) {
+    for (unsigned int y = 0; y < size.height; ++y) {
         float * p_edgeData = edgeData.ptr<float>(y);
         int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < visualization->cols; ++x) {
+        for (unsigned int x = 0; x < size.width; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                switch (0) {
+                switch (1) {
                     case 0:
                         setColor(&p_visualization[x], roughOpacity(WHITE, 0.25));
                         break;
@@ -262,8 +264,8 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
                         setColor(&p_visualization[x], roughOpacity(getRandomColor(p_clusterData[x]), sqrt(p_edgeData[x])));
                         break;
                     case 4: {
-                        Cluster cluster = storage[p_clusterData[x]];
-                        if (cluster.mass < 10) {
+                        Cluster * cluster = storage[p_clusterData[x]];
+                        if (cluster->mass < 10) {
                             setColor(&p_visualization[x], RED);
                         } else {
                             setColor(&p_visualization[x], roughOpacity(WHITE, 0.5));
@@ -271,8 +273,8 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
                         break;
                     }
                     case 5: {
-                        Cluster cluster = storage[p_clusterData[x]];
-                        setColor(&p_visualization[x], getColorByMass(cluster.mass));
+                        Cluster * cluster = storage[p_clusterData[x]];
+                        setColor(&p_visualization[x], getColorByMass(cluster->mass));
                     }
                     default:
                         break;
@@ -284,7 +286,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
         if (cluster.mass > minClusterMass) {
-            line(* visualization, cluster.endingA, cluster.endingB, WHITE);
+            //line(* visualization, cluster.endingA, cluster.endingB, WHITE);
             circle(* visualization, cluster.endingA, 2, WHITE, -1);
             circle(* visualization, cluster.endingA, 1, getRandomColor(cluster.uid), -1);
             circle(* visualization, cluster.endingB, 2, WHITE, -1);
@@ -292,20 +294,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization) {
         }
         if (false && cluster.mass > minClusterMass) {
             Vec3b color = getRandomColor(cluster.uid);
-            //TODO: Does curvature tell us anything?
-            //printf("%f\n", cluster->curvature);
-            float w = cluster.width;
-            float h = cluster.height;
-            if (false && w < 15 && h > 50 && cluster.mass > 100) {
-                line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), BLACK, 2.5);
-                line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), BLACK, 2.5);
-                line(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);
-                line(* visualization, Point2i(cluster.minX, cluster.maxY), Point2i(cluster.maxX, cluster.minY), WHITE);
-                rectangle(* visualization, Point2i(cluster.minX - 1, cluster.minY - 1), Point2i(cluster.maxX + 1, cluster.maxY + 1), BLACK);
-                rectangle(* visualization, Point2i(cluster.minX, cluster.minY), Point2i(cluster.maxX, cluster.maxY), WHITE);
-            } else {
-                rectangle(* visualization, Point(cluster.minX, cluster.minY), Point(cluster.maxX, cluster.maxY), color);
-            }
+            rectangle(* visualization, Point(cluster.minX, cluster.minY), Point(cluster.maxX, cluster.maxY), color);
         }
     }
 }
@@ -326,7 +315,7 @@ void ClusteringEngine::newDatasource(Mat *edgeData) {
     this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
     Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
     this->narrowEdgeData.convertTo(this->narrowEdgeData, CV_32F, 1.0/255.0);
-    dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
+    //dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
     this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_16SC1, int16_t(UNDEFINED_CLUSTER));
     return;
@@ -351,7 +340,7 @@ void ClusteringEngine::getClusterInfoAt(unsigned int x, unsigned int y) {
     if (outOfBounds(&clusterData, x, y)) return;
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-        printf("%s\n", storage[p_clusterData[x]].toString().c_str());
+        printf("%s\n", storage[p_clusterData[x]]->toString().c_str());
     }
     return;
 }

@@ -27,7 +27,7 @@ public:
     size_t size();
     std::vector<Cluster>::iterator begin();
     std::vector<Cluster>::iterator end();
-    Cluster operator[](const size_t index);
+    Cluster * operator[](const size_t index);
     Cluster * getByUid(const int16_t uid);
     
     ClusterStorage();
