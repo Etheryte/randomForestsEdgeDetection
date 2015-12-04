@@ -69,6 +69,15 @@ int main(int argc, const char * argv[]) {
         originalFrame = GetFrame(cap);
         originalFrame.copyTo(frame);
         
+        //TODO: Find rough horizon
+        if (false) {
+            //30 x 30
+            Scalar m = mean(frame);
+            imshow("", frame);
+            while(wait());
+            continue;
+        }
+        
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
         //Clear up for a new iteration and go
         detector->clear();
@@ -82,7 +91,18 @@ int main(int argc, const char * argv[]) {
         
         if (false) {
             edges.convertTo(edges, CV_8U, 255);
-            Canny(edges, edges, 40, 120);
+            bitwise_not(edges, edges);
+            switch (0) {
+                case 0:
+                    Canny(edges, edges, 40, 120);
+                    bitwise_not(edges, edges);
+                    break;
+                case 1:
+                    adaptiveThreshold(edges, edges, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 3, 2);
+                    break;
+                default:
+                    break;
+            }
             imshow("", edges);
             while(wait());
             continue;
@@ -103,18 +123,18 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (true) {
+        if (false) {
             imshow("", clusterVisualization);
             while(wait());
             continue;
         }
         
         classifier.classifyClusters();
-        classifier.visualizeClasses(&visualization, frame.size());
+        //classifier.visualizeClasses(&visualization, frame.size());
         
         //add(visualization, originalFrame, visualization);
         
-        //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
+        combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         imshow("", visualization);
