@@ -37,11 +37,11 @@ void clickDebug(int event, int x, int y, int flags, void * userdata) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_5.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame, edges, visualization;
+    Mat originalFrame, frame, edges, visualization, yuvFrame;
     Mat directionVisualization, clusterVisualization;
     
     float frameCount = 0;
@@ -70,10 +70,19 @@ int main(int argc, const char * argv[]) {
         originalFrame.copyTo(frame);
         
         //TODO: Find rough horizon
-        if (false) {
-            //30 x 30
-            Scalar m = mean(frame);
-            imshow("", frame);
+        if (true) {
+            cvtColor(frame, yuvFrame, CV_BGR2YUV);
+            std::vector<Mat> channels(3);
+            split(yuvFrame, channels);
+            float avgLuminance = mean(channels[0])[0];
+            float delta = avgLuminance - 128;
+            int tolerance = 40;
+            Vec3b upperGreenYuv(255, 70 + tolerance, 115 + tolerance);
+            Vec3b lowerGreenYuv(0, 70 - tolerance, 115 - tolerance);
+            inRange(yuvFrame, lowerGreenYuv, upperGreenYuv, yuvFrame);
+            imshow("", yuvFrame);
+            printf("%f\n", delta);
+            //float yMean = mean(yuvFrame[0?])
             while(wait());
             continue;
         }
@@ -130,11 +139,11 @@ int main(int argc, const char * argv[]) {
         }
         
         classifier.classifyClusters();
-        //classifier.visualizeClasses(&visualization, frame.size());
+        classifier.visualizeClasses(&visualization, frame.size());
         
         //add(visualization, originalFrame, visualization);
         
-        combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
+        //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();
         if (fps > 0) ShowText(visualization, std::to_string(fps));
         imshow("", visualization);

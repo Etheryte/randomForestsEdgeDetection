@@ -1,5 +1,22 @@
 
 
+Find rough horizon.
+Add color checking for posts and connectors
+Ball estimation by groups of small clusters?
+
+
+
+Robots: contain a lot of red but are not goals?
+Ball: Lots of clusterfuck small clusters?
+
+
+
+
+
+
+
+
+
 
 Make graph of clusters where edges mark shared edge parts, then join ones that are above threshold
 
