@@ -10,6 +10,11 @@
 
 void SceneInformation::findGround() {
     Mat yuvFrame;
+    highestPoint = UNDEFINED_POINT;
+    lowestRight = UNDEFINED_POINT;
+    lowestLeft = UNDEFINED_POINT;
+    highestRight = UNDEFINED_POINT;
+    highestLeft = UNDEFINED_POINT;
     //Threshold for the color, remove small details lazily
     cvtColor(frame, yuvFrame, CV_BGR2YUV);
     unsigned int factor = 2;
@@ -21,11 +26,6 @@ void SceneInformation::findGround() {
     int erodeSize = 3;
     erode(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
     dilate(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
-    Point2i highestPoint(UNDEFINED_POINT);
-    Point2i lowestRight(UNDEFINED_POINT);
-    Point2i lowestLeft(UNDEFINED_POINT);
-    Point2i highestRight(UNDEFINED_POINT);
-    Point2i highestLeft(UNDEFINED_POINT);
     //Find optimal tangets for the highest point
     for (unsigned int y = 0; y < yuvFrame.rows; ++y) {
         uint8_t * p_yuvFrame = yuvFrame.ptr<uint8_t>(y);
@@ -83,33 +83,39 @@ void SceneInformation::findGround() {
     lowestLeft.y = yuvFrame.rows - 1;
     lowestRight.y = yuvFrame.rows - 1;
     
-    /*line(yuvFrame, lowestLeft, highestLeft, 100);
-    line(yuvFrame, highestLeft, highestPoint, 100);
-    line(yuvFrame, highestPoint, highestRight, 100);
-    line(yuvFrame, highestRight, lowestRight, 100);
-    line(yuvFrame, lowestRight, lowestLeft, 100);*/
+    highestPoint = highestPoint * factor;
+    lowestRight = lowestRight * factor;
+    lowestLeft = lowestLeft * factor;
+    highestRight = highestRight * factor;
+    highestLeft = highestLeft * factor;
+    ResizeFrame(&yuvFrame, factor);
     Point2i polygon[] = {lowestLeft, highestLeft, highestPoint, highestRight, lowestRight};
     fillConvexPoly(yuvFrame, polygon, 5, 255);
-    imshow(" ", yuvFrame);
+    /*imshow(" ", yuvFrame);
+    while(wait());*/
+    yuvFrame.copyTo(groundFrame);
     groundFound = true;
-    while(wait());
 }
 
 void SceneInformation::analyzeScene(Mat * _frame) {
     _frame->copyTo(frame);
+    this->groundFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     findGround();
 }
 
 bool SceneInformation::isInGround(Point2i point) {
-    //Temporary disable
-    return false;
-    if (ground.contains(point)) return true;
-    return false;
+    imshow("", groundFrame);
+    //while (wait());
+    return groundFrame.at<uint8_t>(point) == 255;
 }
 
 void SceneInformation::drawGround(Mat * _frame) {
     if (groundFound) {
-        rectangle(* _frame, ground, GREEN);
+        line(* _frame, lowestLeft, highestLeft, GREEN);
+        line(* _frame, highestLeft, highestPoint, GREEN);
+        line(* _frame, highestPoint, highestRight, GREEN);
+        line(* _frame, highestRight, lowestRight, GREEN);
+        line(* _frame, lowestRight, lowestLeft, GREEN);
     }
 }
 

@@ -24,9 +24,14 @@ using namespace cv;
 
 class SceneInformation {
     Mat frame;
+    Mat groundFrame;
     void findGround();
     bool groundFound;
-    Rect ground;
+    Point2i highestPoint;
+    Point2i lowestRight;
+    Point2i lowestLeft;
+    Point2i highestRight;
+    Point2i highestLeft;
 public:
     SceneInformation();
     void analyzeScene(Mat * _frame);

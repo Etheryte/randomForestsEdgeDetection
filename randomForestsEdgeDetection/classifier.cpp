@@ -105,7 +105,7 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
         Cluster cluster = (* it);
         Vec3b color = WHITE;
         int width = 1;
-        float opacity = 0.5;
+        float opacity = 0.25;
         switch (cluster.classification) {
             case GOALPOST:
                 opacity = 1;
