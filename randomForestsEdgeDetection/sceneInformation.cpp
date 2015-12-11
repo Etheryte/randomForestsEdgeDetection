@@ -88,6 +88,11 @@ void SceneInformation::findGround() {
     lowestLeft = lowestLeft * factor;
     highestRight = highestRight * factor;
     highestLeft = highestLeft * factor;
+    
+    highestPoint.y = MAX(0, highestPoint.y - GROUND_PADDING);
+    highestLeft.y = MAX(0, highestLeft.y - GROUND_PADDING);
+    highestRight.y = MAX(0, highestRight.y - GROUND_PADDING);
+    
     ResizeFrame(&yuvFrame, factor);
     Point2i polygon[] = {lowestLeft, highestLeft, highestPoint, highestRight, lowestRight};
     fillConvexPoly(yuvFrame, polygon, 5, 255);

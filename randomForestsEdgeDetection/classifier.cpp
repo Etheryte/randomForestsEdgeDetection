@@ -24,11 +24,9 @@ bool isRoughlyAbove(Cluster * clusterA, Cluster * clusterB) {
     return clusterA->center.y < clusterB->center.y;
 }
 
-bool isRoughlyConnected(Cluster * clusterA, Cluster * clusterB) {
-    Point2i end = getHigherEnd(clusterB);
+bool isRoughlyConnected(Point2i one, Point2i other) {
     float dist = 20;
-    if (distance(clusterA->endingA, end) < dist) return true;
-    if (distance(clusterA->endingB, end) < dist) return true;
+    if (distance(one, other) < dist) return true;
     return false;
 }
 
@@ -57,24 +55,44 @@ void Classifier::classifyClusters() {
     for (auto it = remainingClusters.begin(); it != remainingClusters.end(); /* Empty accumulator */) {
         Cluster * cluster = * it;
         bool isAbove = false;
-        bool isConnected = false;
+        bool isAConnected = false;
+        bool isBConnected = false;
         //If is roughly above at least one goalpost
         for (auto jt = goalPosts.begin(); jt != goalPosts.end(); ++jt) {
             Cluster * goalPost = * jt;
             if (isRoughlyAbove(cluster, goalPost)) {
                 isAbove = true;
             }
-            if (isRoughlyConnected(cluster, goalPost)) {
-                isConnected = true;
+            if (isRoughlyConnected(cluster->endingA, getHigherEnd(goalPost))) {
+                isAConnected = true;
+            }
+            if (isRoughlyConnected(cluster->endingB, getHigherEnd(goalPost))) {
+                isBConnected = true;
             }
         }
         //And if can connect _higher ends_ of two goalposts
-        if (isAbove && isConnected) {
+        if (isAbove && isAConnected && isBConnected) {
             cluster->classification = GOALCONNECTOR;
             goalConnectors.push_back(cluster);
             it = remainingClusters.erase(it);
         } else {
             ++it;
+        }
+    }
+    //Non-connected goalposts are not goalposts
+    for (auto it = goalPosts.begin(); it != goalPosts.end(); ++it) {
+        Cluster * goalPost = * it;
+        bool connected = false;
+        for (auto jt = goalConnectors.begin(); jt != goalConnectors.end(); ++jt) {
+            Cluster * goalConnector = * jt;
+            if (isRoughlyConnected(getHigherEnd(goalPost), goalConnector->endingA) || isRoughlyConnected(getHigherEnd(goalPost), goalConnector->endingB)) {
+                connected = true;
+                break;
+            }
+        }
+        if (!connected) {
+            //TODO: Remove from vector?
+            goalPost->classification = UNDEFINED_CLASS;
         }
     }
     remainingClusters.clear();
@@ -87,7 +105,7 @@ bool Classifier::possibleGoalPost(Cluster * cluster) {
         cluster->averageDirection > M_PI / 2.0 - 0.5 &&
         cluster->averageDirection < M_PI / 2.0 + 0.5 &&
         cluster->length < 200 &&
-        cluster->length > 30 &&
+        cluster->length > 50 &&
         (
          (scenery->isInGround(cluster->endingA) && !scenery->isInGround(cluster->endingB)) ||
          (scenery->isInGround(cluster->endingB) && !scenery->isInGround(cluster->endingA))
@@ -113,7 +131,6 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
                 color = YELLOW;
                 break;
             case GOALCONNECTOR:
-                break;
                 opacity = 1;
                 width = 2;
                 color = RED;

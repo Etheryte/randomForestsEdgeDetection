@@ -38,7 +38,7 @@ void clickDebug(int event, int x, int y, int flags, void * userdata) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_5co.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
