@@ -14,9 +14,10 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/highgui/highgui.hpp>
 
+#include "util.h"
+
 using namespace cv;
 
 Mat GetFrame(VideoCapture cap);
-void ResizeFrame(Mat * frame, float factor);
 
 #endif /* defined(__randomForestsEdgeDetection__camera__) */

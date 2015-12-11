@@ -10,16 +10,18 @@
 #define __randomForestsEdgeDetection__classifier__
 
 #include "clusteringEngine.h"
+#include "sceneInformation.h"
 #include "util.h"
 
 class Classifier {
     ClusterStorage * storage;
     Mat * clusterData;
+    SceneInformation * scenery;
 public:
     void classifyClusters();
     bool possibleGoalPost(Cluster * cluster);
     void visualizeClasses(Mat * visualization, Size size);
-    Classifier(ClusteringEngine * clustering);
+    Classifier(ClusteringEngine * clustering, SceneInformation * scenery);
 };
 
 #endif /* defined(__randomForestsEdgeDetection__classifier__) */

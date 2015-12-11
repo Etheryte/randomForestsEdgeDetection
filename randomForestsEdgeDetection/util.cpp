@@ -139,9 +139,15 @@ bool operator==(const Vec3b &lhs, const int &rhs) {
     return (lhs[0] == rhs && lhs[1] == rhs && lhs[2] == rhs);
 }
 
+void ResizeFrame(Mat * frame, float factor) {
+    Size frameSize = frame->size();
+    Size newSize = Size(frameSize.width * factor, frameSize.height * factor);
+    resize(* frame, * frame, newSize);
+}
 
-
-
+Point2i operator * (const Point2i &point, const unsigned int &n) {
+    return Point2i(point.x * n, point.y * n);
+}
 
 
 

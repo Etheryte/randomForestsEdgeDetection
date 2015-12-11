@@ -315,7 +315,7 @@ void ClusteringEngine::newDatasource(Mat *edgeData) {
     this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
     Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
     this->narrowEdgeData.convertTo(this->narrowEdgeData, CV_32F, 1.0/255.0);
-    //dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
+    dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
     this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_16SC1, int16_t(UNDEFINED_CLUSTER));
     return;

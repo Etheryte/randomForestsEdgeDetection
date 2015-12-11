@@ -14,6 +14,7 @@
 		7A4F8F2C1BDA92B2001F1C3E /* camera.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2A1BDA92B2001F1C3E /* camera.cpp */; };
 		7A4F8F2F1BDBC0F0001F1C3E /* fps.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F2D1BDBC0F0001F1C3E /* fps.cpp */; };
 		7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A4F8F301BDBC7CD001F1C3E /* util.cpp */; };
+		7A9F2FC51C19FDEC00BA1470 /* sceneInformation.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7A9F2FC31C19FDEC00BA1470 /* sceneInformation.cpp */; };
 		7ADA249A1BE2C2C3006F9BC4 /* clusteringEngine.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */; };
 		7ADB002B1BED05C60044BAD2 /* TODO.md in Sources */ = {isa = PBXBuildFile; fileRef = 7ADB002A1BED05C60044BAD2 /* TODO.md */; };
 /* End PBXBuildFile section */
@@ -46,6 +47,8 @@
 		7A4F8F2E1BDBC0F0001F1C3E /* fps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = fps.h; sourceTree = "<group>"; };
 		7A4F8F301BDBC7CD001F1C3E /* util.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = util.cpp; sourceTree = "<group>"; };
 		7A4F8F311BDBC7CD001F1C3E /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = util.h; sourceTree = "<group>"; };
+		7A9F2FC31C19FDEC00BA1470 /* sceneInformation.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = sceneInformation.cpp; sourceTree = "<group>"; };
+		7A9F2FC41C19FDEC00BA1470 /* sceneInformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = sceneInformation.h; sourceTree = "<group>"; };
 		7ADA24981BE2C2C3006F9BC4 /* clusteringEngine.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = clusteringEngine.cpp; sourceTree = "<group>"; };
 		7ADA24991BE2C2C3006F9BC4 /* clusteringEngine.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = clusteringEngine.h; sourceTree = "<group>"; };
 		7ADB002A1BED05C60044BAD2 /* TODO.md */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = net.daringfireball.markdown; name = TODO.md; path = randomForestsEdgeDetection/TODO.md; sourceTree = "<group>"; };
@@ -83,6 +86,8 @@
 			isa = PBXGroup;
 			children = (
 				7A4F8F231BDA9106001F1C3E /* main.cpp */,
+				7A9F2FC31C19FDEC00BA1470 /* sceneInformation.cpp */,
+				7A9F2FC41C19FDEC00BA1470 /* sceneInformation.h */,
 				7A4F8F2A1BDA92B2001F1C3E /* camera.cpp */,
 				7A4F8F2B1BDA92B2001F1C3E /* camera.h */,
 				7A4F8F2D1BDBC0F0001F1C3E /* fps.cpp */,
@@ -167,6 +172,7 @@
 				7ADA249A1BE2C2C3006F9BC4 /* clusteringEngine.cpp in Sources */,
 				7A19B0D11C103AB600033E24 /* clusterStorage.cpp in Sources */,
 				7A4F8F321BDBC7CD001F1C3E /* util.cpp in Sources */,
+				7A9F2FC51C19FDEC00BA1470 /* sceneInformation.cpp in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

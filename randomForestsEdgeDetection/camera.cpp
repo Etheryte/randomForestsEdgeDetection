@@ -36,9 +36,3 @@ Mat GetFrame(VideoCapture cap) {
     //cvtColor(frame, frame, CV_GRAY2BGR);
     return frame;
 }
-
-void ResizeFrame(Mat * frame, float factor) {
-    Size frameSize = frame->size();
-    Size newSize = Size(frameSize.width * factor, frameSize.height * factor);
-    resize(* frame, * frame, newSize);
-}

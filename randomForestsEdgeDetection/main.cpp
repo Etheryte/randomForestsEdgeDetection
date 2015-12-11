@@ -1,4 +1,4 @@
-//
+ //
 //  main.cpp
 //  randomForestsEdgeDetection
 //
@@ -21,6 +21,7 @@
 #include "fps.h"
 #include "clusteringEngine.h"
 #include "classifier.h"
+#include "sceneInformation.h"
 
 #include <assert.h>
 #include <time.h>
@@ -37,7 +38,7 @@ void clickDebug(int event, int x, int y, int flags, void * userdata) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_5.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -56,8 +57,9 @@ int main(int argc, const char * argv[]) {
     float continueThresh = 0.06;
     float minClusterMass = 20;
     float maxClusterMass = 5000;
-    ClusteringEngine clustering = ClusteringEngine(startThresh, continueThresh, minClusterMass, maxClusterMass);
-    Classifier classifier = Classifier(&clustering);
+    ClusteringEngine clustering(startThresh, continueThresh, minClusterMass, maxClusterMass);
+    SceneInformation scenery = SceneInformation();
+    Classifier classifier(&clustering, &scenery);
     
     namedWindow("", 1);
     setMouseCallback("", clickDebug, &clustering);
@@ -68,24 +70,6 @@ int main(int argc, const char * argv[]) {
         
         originalFrame = GetFrame(cap);
         originalFrame.copyTo(frame);
-        
-        //TODO: Find rough horizon
-        if (true) {
-            cvtColor(frame, yuvFrame, CV_BGR2YUV);
-            std::vector<Mat> channels(3);
-            split(yuvFrame, channels);
-            float avgLuminance = mean(channels[0])[0];
-            float delta = avgLuminance - 128;
-            int tolerance = 40;
-            Vec3b upperGreenYuv(255, 70 + tolerance, 115 + tolerance);
-            Vec3b lowerGreenYuv(0, 70 - tolerance, 115 - tolerance);
-            inRange(yuvFrame, lowerGreenYuv, upperGreenYuv, yuvFrame);
-            imshow("", yuvFrame);
-            printf("%f\n", delta);
-            //float yMean = mean(yuvFrame[0?])
-            while(wait());
-            continue;
-        }
         
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
         //Clear up for a new iteration and go
@@ -138,10 +122,25 @@ int main(int argc, const char * argv[]) {
             continue;
         }
         
+        //Analyze the scene for information
+        scenery.analyzeScene(&originalFrame);
+        continue;
+        
+        if (false) {
+            scenery.drawGround(&frame);
+            imshow("", frame);
+            while(wait());
+            continue;
+        }
+        
+        //Classify clusters
         classifier.classifyClusters();
         classifier.visualizeClasses(&visualization, frame.size());
         
-        //add(visualization, originalFrame, visualization);
+        originalFrame *= 0.5;
+        add(visualization, originalFrame, visualization);
+        
+        scenery.drawGround(&visualization);
         
         //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         fps = fpsCounter.Get();

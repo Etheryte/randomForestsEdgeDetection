@@ -8,9 +8,10 @@
 
 #include "classifier.h"
 
-Classifier::Classifier(ClusteringEngine * clustering) {
+Classifier::Classifier(ClusteringEngine * clustering, SceneInformation * scenery) {
     this->storage = &clustering->storage;
     this->clusterData = &clustering->clusterData;
+    this->scenery = scenery;
 }
 
 Point2i getHigherEnd(Cluster * cluster) {
@@ -82,10 +83,16 @@ void Classifier::classifyClusters() {
 }
 
 bool Classifier::possibleGoalPost(Cluster * cluster) {
-    if (cluster->averageDirection > M_PI / 2.0 - 0.5 &&
+    if (
+        cluster->averageDirection > M_PI / 2.0 - 0.5 &&
         cluster->averageDirection < M_PI / 2.0 + 0.5 &&
         cluster->length < 200 &&
-        cluster->length > 30) {
+        cluster->length > 30 &&
+        (
+         (scenery->isInGround(cluster->endingA) && !scenery->isInGround(cluster->endingB)) ||
+         (scenery->isInGround(cluster->endingB) && !scenery->isInGround(cluster->endingA))
+         )
+        ) {
         return true;
     }
     return false;
@@ -98,18 +105,22 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
         Cluster cluster = (* it);
         Vec3b color = WHITE;
         int width = 1;
+        float opacity = 0.5;
         switch (cluster.classification) {
             case GOALPOST:
+                opacity = 1;
                 width = 2;
                 color = YELLOW;
                 break;
             case GOALCONNECTOR:
+                break;
+                opacity = 1;
                 width = 2;
                 color = RED;
             default:
                 break;
         }
-        line(* visualization, cluster.endingA, cluster.endingB, color, width);
+        line(* visualization, cluster.endingA, cluster.endingB, roughOpacity(color, opacity), width);
         //Draw tangents
         if (false && cluster.mass > 50) {
             Point a = cluster.center;
