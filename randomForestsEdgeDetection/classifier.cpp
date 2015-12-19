@@ -55,23 +55,25 @@ void Classifier::classifyClusters() {
     for (auto it = remainingClusters.begin(); it != remainingClusters.end(); /* Empty accumulator */) {
         Cluster * cluster = * it;
         bool isAbove = false;
-        bool isAConnected = false;
-        bool isBConnected = false;
+        bool isConnected = false;
         //If is roughly above at least one goalpost
         for (auto jt = goalPosts.begin(); jt != goalPosts.end(); ++jt) {
             Cluster * goalPost = * jt;
             if (isRoughlyAbove(cluster, goalPost)) {
                 isAbove = true;
             }
-            if (isRoughlyConnected(cluster->endingA, getHigherEnd(goalPost))) {
-                isAConnected = true;
+            Point postEnd = getHigherEnd(goalPost);
+            //Do we want this to be relative?
+            float distanceThreshold = 20;
+            if (isRoughlyConnected(cluster->endingA, postEnd) && distanceX(cluster->endingB, postEnd) > distanceThreshold) {
+                isConnected = true;
             }
-            if (isRoughlyConnected(cluster->endingB, getHigherEnd(goalPost))) {
-                isBConnected = true;
+            if (isRoughlyConnected(cluster->endingB, postEnd) && distanceX(cluster->endingA, postEnd) > distanceThreshold) {
+                isConnected = true;
             }
         }
-        //And if can connect _higher ends_ of two goalposts
-        if (isAbove && isAConnected && isBConnected) {
+        //And if can connect to thehigher end of a goalpost
+        if (isAbove && isConnected) {
             cluster->classification = GOALCONNECTOR;
             goalConnectors.push_back(cluster);
             it = remainingClusters.erase(it);
@@ -100,20 +102,20 @@ void Classifier::classifyClusters() {
     goalConnectors.clear();
 }
 
+int Classifier::inGroundCount(Cluster * cluster) {
+    int count = 0;
+    if (scenery->isInGround(cluster->endingA)) count++;
+    if (scenery->isInGround(cluster->endingB)) count++;
+    if (scenery->isInGround(cluster->center)) count++;
+    return count;
+}
+
 bool Classifier::possibleGoalPost(Cluster * cluster) {
-    if (
-        cluster->averageDirection > M_PI / 2.0 - 0.5 &&
-        cluster->averageDirection < M_PI / 2.0 + 0.5 &&
-        cluster->length < 200 &&
-        cluster->length > 50 &&
-        (
-         (scenery->isInGround(cluster->endingA) && !scenery->isInGround(cluster->endingB)) ||
-         (scenery->isInGround(cluster->endingB) && !scenery->isInGround(cluster->endingA))
-         )
-        ) {
-        return true;
-    }
-    return false;
+    if (cluster->averageDirection < M_PI / 2.0 - 0.5) return false;
+    if (cluster->averageDirection > M_PI / 2.0 + 0.5) return false;
+    if (cluster->length < 50 || cluster->length > 200) return false;
+    if (inGroundCount(cluster) != 1) return false;
+    return true;
 }
 
 void Classifier::visualizeClasses(Mat * visualization, Size size) {

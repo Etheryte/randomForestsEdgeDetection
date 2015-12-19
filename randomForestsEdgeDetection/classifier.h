@@ -21,6 +21,7 @@ public:
     void classifyClusters();
     bool possibleGoalPost(Cluster * cluster);
     void visualizeClasses(Mat * visualization, Size size);
+    int inGroundCount(Cluster * cluster);
     Classifier(ClusteringEngine * clustering, SceneInformation * scenery);
 };
 
