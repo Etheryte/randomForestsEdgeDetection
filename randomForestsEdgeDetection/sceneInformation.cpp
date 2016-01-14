@@ -109,8 +109,6 @@ void SceneInformation::analyzeScene(Mat * _frame) {
 }
 
 bool SceneInformation::isInGround(Point2i point) {
-    imshow("", groundFrame);
-    //while (wait());
     return groundFrame.at<uint8_t>(point) == 255;
 }
 

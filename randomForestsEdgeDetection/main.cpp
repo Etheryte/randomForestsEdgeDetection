@@ -136,6 +136,13 @@ int main(int argc, const char * argv[]) {
         classifier.classifyClusters();
         classifier.visualizeClasses(&visualization, frame.size());
         
+        if (true) {
+            classifier.visualizeBallRoi(&visualization, frame.size());
+            imshow("", visualization);
+            while(wait());
+            continue;
+        }
+        
         originalFrame *= 0.5;
         add(visualization, originalFrame, visualization);
         

@@ -172,6 +172,59 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
     }
 }
 
+int getNumberOfSetBitsInRoi() {
+    return 0;
+}
+
+void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
+    visualization->release();
+    * visualization = Mat(size, CV_8UC3, uint8_t(0));
+    std::vector<std::vector<unsigned int>> map(size.height);
+    for (unsigned int y = 0; y < size.height; ++y) {
+        int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
+        Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
+        //Create a map to look up areas faster later on
+        std::vector<unsigned int> * p_map = & map.at(y);
+        bool white = false;
+        for (unsigned int x = 0; x < size.width; ++x) {
+            if (p_clusterData[x] != UNDEFINED_CLUSTER) {
+                Cluster * cluster = (* storage)[p_clusterData[x]];
+                if (cluster->mass > 5 && cluster->mass < 50) {
+                    setColor(&p_visualization[x], WHITE);
+                    if (white == false) {
+                        p_map->push_back(x);
+                    }
+                    white = true;
+                } else {
+                    if (white == true) {
+                        p_map->push_back(x);
+                    }
+                    white = false;
+                }
+            }
+        }
+    }
+    int minWidth = 20;
+    int maxWidth = 80;
+    int scanStep = 5;
+    int boxStep = 5;
+    for (unsigned int y = 0; y < size.height; y += scanStep) {
+        for (unsigned int x = 0; x < size.width; x += scanStep) {
+            for (unsigned int len = minWidth; len <= maxWidth; len += boxStep) {
+                //rectangle(* visualization, Point2i(x, y), Point2i(x + len, y + len), RED);
+            }
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
 
 
 
