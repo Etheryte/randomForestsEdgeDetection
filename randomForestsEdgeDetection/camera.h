@@ -18,6 +18,6 @@
 
 using namespace cv;
 
-Mat GetFrame(VideoCapture cap);
+Mat GetFrame(VideoCapture cap, bool moveForward);
 
 #endif /* defined(__randomForestsEdgeDetection__camera__) */

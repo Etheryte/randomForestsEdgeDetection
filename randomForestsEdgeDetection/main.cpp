@@ -52,6 +52,7 @@ int main(int argc, const char * argv[]) {
     //cap.open(0);
     cap = VideoCapture(videoFileName);
     assert(cap.isOpened());
+    bool moveForward = true;
     
     float startThresh = 0.10;
     float continueThresh = 0.06;
@@ -68,7 +69,7 @@ int main(int argc, const char * argv[]) {
         //Free up ClusterEngine memory for a new iteration
         clustering.clear();
         
-        originalFrame = GetFrame(cap);
+        originalFrame = GetFrame(cap, moveForward);
         originalFrame.copyTo(frame);
         
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
@@ -116,9 +117,9 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (false) {
+        if (true) {
             imshow("", clusterVisualization);
-            while(wait());
+            while(wait(&moveForward));
             continue;
         }
         
@@ -136,8 +137,13 @@ int main(int argc, const char * argv[]) {
         classifier.classifyClusters();
         classifier.visualizeClasses(&visualization, frame.size());
         
-        if (true) {
+        if (false) {
             classifier.visualizeBallRoi(&visualization, frame.size());
+            originalFrame *= 0.5;
+            add(originalFrame, visualization, originalFrame);
+            add(originalFrame, visualization, visualization);
+            fps = fpsCounter.Get();
+            if (fps > 0) ShowText(visualization, std::to_string(fps));
             imshow("", visualization);
             while(wait());
             continue;

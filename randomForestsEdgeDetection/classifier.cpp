@@ -172,25 +172,21 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
     }
 }
 
-int getNumberOfSetBitsInRoi() {
-    return 0;
-}
-
 void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
     visualization->release();
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
+    //Create a map to look up areas faster later on
     std::vector<std::vector<unsigned int>> map(size.height);
     for (unsigned int y = 0; y < size.height; ++y) {
         int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        //Create a map to look up areas faster later on
         std::vector<unsigned int> * p_map = & map.at(y);
         bool white = false;
         for (unsigned int x = 0; x < size.width; ++x) {
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
                 Cluster * cluster = (* storage)[p_clusterData[x]];
                 if (cluster->mass > 5 && cluster->mass < 50) {
-                    setColor(&p_visualization[x], WHITE);
+                    //setColor(&p_visualization[x], WHITE);
                     if (white == false) {
                         p_map->push_back(x);
                     }
@@ -204,14 +200,50 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
             }
         }
     }
-    int minWidth = 20;
-    int maxWidth = 80;
+    int minLen = 5;
+    int maxLen = 30;
     int scanStep = 5;
     int boxStep = 5;
+    //Over the whole image
     for (unsigned int y = 0; y < size.height; y += scanStep) {
         for (unsigned int x = 0; x < size.width; x += scanStep) {
-            for (unsigned int len = minWidth; len <= maxWidth; len += boxStep) {
-                //rectangle(* visualization, Point2i(x, y), Point2i(x + len, y + len), RED);
+            if (!scenery->isInGround(Point2i(x, y))) continue;
+            //For every ROI of given size
+            for (unsigned int len = minLen; len <= maxLen && y + len < size.height && x + len < size.width; len += boxStep) {
+                if (!scenery->isInGround(Point2i(x + len, y + len))) continue;
+                //TODO include last edges
+                //Get the number of set bits in the ROI
+                unsigned int bits = 0;
+                for (unsigned int mapY = y; mapY < y + len; mapY++) {
+                    std::vector<unsigned int> * p_map = & map.at(mapY);
+                    if (p_map->size() == 0) break;
+                    
+                    bool white = false;
+                    unsigned int last = p_map->front();
+                    for (auto it = p_map->begin(); it != p_map->end(); ++it) {
+                        white = !white;
+                        if (white) {
+                            unsigned int mapX = (* it);
+                            if (mapX < x) continue;
+                            mapX = MIN(mapX, size.width);
+                            if (mapX > x + len) break;
+                            bits += mapX - last;
+                        }
+                    }
+                }
+                float per = bits / (len);
+                if (per > 0) {
+                    //printf("%f\n", per);
+                    for (unsigned int recY = y; recY < y + len; recY++) {
+                        Vec3b * p_visualization = visualization->ptr<Vec3b>(recY);
+                        for (unsigned int recX = x; recX < x + len; recX++) {
+                            if (p_visualization[recX][0] == 0 && p_visualization[recX][2] < 255) {
+                                p_visualization[recX][2] += 1;
+                            }
+                        }
+                    }
+                    //rectangle(* visualization, Point2i(x, y), Point2i(x + len, y + len), RED);
+                }
             }
         }
     }

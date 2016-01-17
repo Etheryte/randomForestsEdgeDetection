@@ -9,8 +9,25 @@
 #include "util.h"
 
 bool wait() {
+    bool tmp;
+    return wait(&tmp);
+}
+
+bool wait(bool * moveForward) {
     int key;
     key = waitKey(5);
+    //63234 left
+    //63235 right
+    if (moveForward != NULL) {
+        if (key == 63234) {
+            * moveForward = false;
+            return false;
+        }
+        if (key == 63235) {
+            * moveForward = true;
+            return false;
+        }
+    }
     if (key == 27)
         exit(0);
     if (key == 32)

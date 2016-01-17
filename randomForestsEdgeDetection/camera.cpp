@@ -8,20 +8,25 @@
 
 #include "camera.h"
 
-Mat GetFrame(VideoCapture cap) {
+double capCurrentFrame = 0;
+Mat GetFrame(VideoCapture cap, bool moveForward) {
     Mat frame;
     
+    int speed = 1;
     int retry = 5;
     do {
+        cap.set(CV_CAP_PROP_POS_FRAMES, capCurrentFrame);
+        if (moveForward == true) {
+            capCurrentFrame += speed;
+        } else {
+            capCurrentFrame = MAX(capCurrentFrame - speed, 0);
+        }
         cap >> frame;
         
         //If we're using the webcam, size things down and flip
         if(cap.get(CV_CAP_PROP_FOURCC) == 0.0) {
             ResizeFrame(&frame, 0.25);
             flip(frame, frame, 1);
-        } else {
-            //For faster video debug, I'm lazy
-            //cap >> frame;
         }
         retry--;
         if (retry == 0) {

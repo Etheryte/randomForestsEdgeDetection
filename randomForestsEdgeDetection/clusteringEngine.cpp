@@ -250,7 +250,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
         for (unsigned int x = 0; x < size.width; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                switch (6) {
+                switch (0) {
                     case 0:
                         setColor(&p_visualization[x], roughOpacity(WHITE, 0.25));
                         break;
@@ -288,7 +288,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
             }
         }
     }
-    return;
+    //return;
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);

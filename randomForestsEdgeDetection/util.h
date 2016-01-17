@@ -18,6 +18,7 @@
 using namespace cv;
 
 bool wait();
+bool wait(bool * moveForward);
 bool waitEsc();
 
 void ShowText(cv::Mat mat, const std::string str, float left, float top);
