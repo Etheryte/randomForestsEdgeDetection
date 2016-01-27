@@ -26,6 +26,7 @@ class SceneInformation {
     Mat frame;
     Mat groundFrame;
     void findGround();
+    void findDark();
     bool groundFound;
     Point2i highestPoint;
     Point2i lowestRight;
@@ -34,8 +35,10 @@ class SceneInformation {
     Point2i highestLeft;
 public:
     SceneInformation();
+    Mat darkFrame;
     void analyzeScene(Mat * _frame);
     bool isInGround(Point2i point);
+    bool isInDark(Point2i point);
     void drawGround(Mat * _frame);
 };
 

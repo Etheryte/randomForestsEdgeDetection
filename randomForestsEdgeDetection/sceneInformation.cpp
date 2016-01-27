@@ -96,16 +96,35 @@ void SceneInformation::findGround() {
     ResizeFrame(&yuvFrame, factor);
     Point2i polygon[] = {lowestLeft, highestLeft, highestPoint, highestRight, lowestRight};
     fillConvexPoly(yuvFrame, polygon, 5, 255);
-    /*imshow(" ", yuvFrame);
-    while(wait());*/
     yuvFrame.copyTo(groundFrame);
     groundFound = true;
+}
+
+void SceneInformation::findDark() {
+    Mat yuvFrame, channel;
+    //Threshold, remove small details lazily
+    cvtColor(frame, yuvFrame, CV_BGR2YUV);
+    unsigned int factor = 2;
+    ResizeFrame(&yuvFrame, 1.0 / factor);
+    extractChannel(yuvFrame, channel, 0);
+    float m = mean(channel)[0];
+    float correction = 0.95;
+    //Darker areas are of more interest, but don't show the threshed areas
+    channel = 255 - channel;
+    threshold(channel, channel, m * correction, 255, CV_THRESH_TOZERO);
+    cvtColor(channel, channel, CV_GRAY2BGR);
+    ResizeFrame(&channel, factor);
+    channel.copyTo(darkFrame);
+    //imshow("darkness", channel);
+    return;
 }
 
 void SceneInformation::analyzeScene(Mat * _frame) {
     _frame->copyTo(frame);
     this->groundFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
+    this->darkFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     findGround();
+    findDark();
 }
 
 bool SceneInformation::isInGround(Point2i point) {

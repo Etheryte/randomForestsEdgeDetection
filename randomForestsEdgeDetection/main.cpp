@@ -36,6 +36,13 @@ void clickDebug(int event, int x, int y, int flags, void * userdata) {
     }
 }
 
+FpsCounter fpsCounter = FpsCounter();
+void show(Mat visualization) {
+    int fps = fpsCounter.Get();
+    if (fps > 0) ShowText(visualization, std::to_string(fps));
+    imshow("", visualization);
+}
+
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
     std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
@@ -46,8 +53,6 @@ int main(int argc, const char * argv[]) {
     Mat directionVisualization, clusterVisualization;
     
     float frameCount = 0;
-    FpsCounter fpsCounter = FpsCounter();
-    int fps;
     VideoCapture cap;
     //cap.open(0);
     cap = VideoCapture(videoFileName);
@@ -78,7 +83,7 @@ int main(int argc, const char * argv[]) {
         detector->detectEdges(frame, edges);
         
         if (false) {
-            imshow("", edges);
+            show(edges);
             while(wait());
             continue;
         }
@@ -97,8 +102,8 @@ int main(int argc, const char * argv[]) {
                 default:
                     break;
             }
-            imshow("", edges);
-            while(wait());
+            show(edges);
+            while(wait(&moveForward));
             continue;
         }
         
@@ -108,8 +113,8 @@ int main(int argc, const char * argv[]) {
         clustering.visualizeDirections(&directionVisualization, frame.size());
         
         if (false) {
-            imshow("", directionVisualization);
-            while(wait());
+            show(directionVisualization);
+            while(wait(&moveForward));
             continue;
         }
         
@@ -117,8 +122,8 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (true) {
-            imshow("", clusterVisualization);
+        if (false) {
+            show(clusterVisualization);
             while(wait(&moveForward));
             continue;
         }
@@ -128,8 +133,8 @@ int main(int argc, const char * argv[]) {
         
         if (false) {
             scenery.drawGround(&frame);
-            imshow("", frame);
-            while(wait());
+            show(frame);
+            while(wait(&moveForward));
             continue;
         }
         
@@ -137,15 +142,13 @@ int main(int argc, const char * argv[]) {
         classifier.classifyClusters();
         classifier.visualizeClasses(&visualization, frame.size());
         
-        if (false) {
+        if (true) {
             classifier.visualizeBallRoi(&visualization, frame.size());
             originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
             add(originalFrame, visualization, visualization);
-            fps = fpsCounter.Get();
-            if (fps > 0) ShowText(visualization, std::to_string(fps));
-            imshow("", visualization);
-            while(wait());
+            show(visualization);
+            while(wait(&moveForward));
             continue;
         }
         
@@ -155,13 +158,11 @@ int main(int argc, const char * argv[]) {
         scenery.drawGround(&visualization);
         
         //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
-        fps = fpsCounter.Get();
-        if (fps > 0) ShowText(visualization, std::to_string(fps));
-        imshow("", visualization);
+        show(visualization);
         
         std::ostringstream filename;
         filename << rootOutputPath << "frame" << std::setfill('0') << std::setw(5) << frameCount++ << ".png";
-        while(wait());
+        while(wait(&moveForward));
     }
     return 0;
 }
