@@ -248,7 +248,9 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
         }
     }
     //Add darkness visualization
-    imshow("wat", scenery->darkFrame);
+    imshow("darkness", scenery->darkFrame);
+
+    //circle(* visualization, maxLoc, 5, BLUE);
     //add(* visualization, (255 - scenery->darkFrame) * 0.5, * visualization);
 }
 
