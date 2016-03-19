@@ -36,10 +36,13 @@ public:
     Point2i center; //NB! This might not contain a data point
     //A single point included in the cluster, randomity doesn't matter to us here
     Point2i point;
-    float averageDirection; //TODO: Take from below instead
+    float averageDirection;
     Point2i endingA;
     Point2i endingB;
-    float length; //TODO: Implement
+    float length;
+    int darkness;
+    int brightness;
+    bool hasSaturation;
     
     void computeGeometrics ();
     std::string toString();

@@ -45,7 +45,7 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/bottom_160_120.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -84,7 +84,7 @@ int main(int argc, const char * argv[]) {
         
         if (false) {
             show(edges);
-            while(wait());
+            while(wait(&moveForward));
             continue;
         }
         
@@ -103,6 +103,16 @@ int main(int argc, const char * argv[]) {
                     break;
             }
             show(edges);
+            while(wait(&moveForward));
+            continue;
+        }
+        
+        //Analyze the scene for information
+        scenery.analyzeScene(&originalFrame);
+        
+        if (false) {
+            scenery.drawGround(&frame);
+            show(frame);
             while(wait(&moveForward));
             continue;
         }
@@ -128,12 +138,15 @@ int main(int argc, const char * argv[]) {
             continue;
         }
         
-        //Analyze the scene for information
-        scenery.analyzeScene(&originalFrame);
+        //Update clusters with scenery information
+        classifier.updateClusters();
         
-        if (false) {
-            scenery.drawGround(&frame);
-            show(frame);
+        if (true) {
+            classifier.visualizeClusterProperties(&visualization, frame.size());
+            originalFrame *= 0.5;
+            add(originalFrame, visualization, originalFrame);
+            add(originalFrame, visualization, visualization);
+            show(visualization);
             while(wait(&moveForward));
             continue;
         }

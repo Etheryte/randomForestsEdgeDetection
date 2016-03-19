@@ -37,7 +37,6 @@ class ClusteringEngine {
     float minClusterMass;
     float maxClusterMass;
     
-    bool outOfBounds(Mat * frame, unsigned int x, unsigned int y);
     void remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
     void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);

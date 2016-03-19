@@ -53,10 +53,6 @@ void ClusteringEngine::visualizeDirections(Mat * visualization, Size size) {
     }
 }
 
-bool ClusteringEngine::outOfBounds (Mat * frame, unsigned int x, unsigned int y) {
-    return (x <= 0 || y <= 0 || x >= (* frame).cols || y >= (* frame).rows);
-};
-
 //Did we find a new point at given coordinates?
 void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;

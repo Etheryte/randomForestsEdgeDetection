@@ -30,6 +30,95 @@ bool isRoughlyConnected(Point2i one, Point2i other) {
     return false;
 }
 
+//TODO: Merge these 3 methods and only call on clusters of interest?
+int Classifier::getDarkness(Point2i point) {
+    int radius = 3;
+    int maxDarkness = 0;
+    unsigned int _y = point.y - (int)(radius / 2);
+    unsigned int _x = point.x - (int)(radius / 2);
+    for (unsigned int i = 0; i < radius; i++) {
+        unsigned int y = _y + i;
+        uint8_t * p_darkFrame = scenery->darkFrame.ptr<uint8_t>(y);
+        for (unsigned int j = 0; j < radius; j++) {
+            unsigned int x = _x + j;
+            if (outOfBounds(&scenery->darkFrame, x, y)) break;
+            maxDarkness = MAX(maxDarkness, p_darkFrame[x]);
+        }
+    }
+    return maxDarkness;
+}
+
+int Classifier::getBrightness(Point2i point) {
+    int radius = 3;
+    int maxBrightness = 0;
+    unsigned int _y = point.y - (int)(radius / 2);
+    unsigned int _x = point.x - (int)(radius / 2);
+    for (unsigned int i = 0; i < radius; i++) {
+        unsigned int y = _y + i;
+        uint8_t * p_darkFrame = scenery->darkFrame.ptr<uint8_t>(y);
+        for (unsigned int j = 0; j < radius; j++) {
+            unsigned int x = _x + j;
+            if (outOfBounds(&scenery->darkFrame, x, y)) break;
+            maxBrightness = MAX(maxBrightness, 255 - p_darkFrame[x]);
+        }
+    }
+    return maxBrightness;
+}
+
+bool Classifier::hasSaturation(Point2i point) {
+    int radius = 6;
+    int maxDelta = 20; //Naíve check
+    unsigned int _y = point.y - (int)(radius / 2);
+    unsigned int _x = point.x - (int)(radius / 2);
+    for (unsigned int i = 0; i < radius; i++) {
+        unsigned int y = _y + i;
+        Vec3b * p_frame = scenery->frame.ptr<Vec3b>(y);
+        for (unsigned int j = 0; j < radius; j++) {
+            unsigned int x = _x + j;
+            if (outOfBounds(&scenery->frame, x, y)) break;
+            if (abs(p_frame[x][0] - p_frame[x][1]) > maxDelta) return true;
+            if (abs(p_frame[x][1] - p_frame[x][2]) > maxDelta) return true;
+            if (abs(p_frame[x][2] - p_frame[x][0]) > maxDelta) return true;
+        }
+    }
+    return false;
+}
+
+void Classifier::updateClusters() {
+    for (auto it = storage->begin(); it != storage->end(); ++it) {
+        Cluster * cluster = &(* it);
+        int darkness = getDarkness(cluster->endingA);
+        darkness = MAX(darkness, getDarkness(cluster->endingB));
+        cluster->darkness = darkness;
+        int brightness = getBrightness(cluster->endingA);
+        brightness = MAX(brightness, getBrightness(cluster->endingB));
+        cluster->brightness = brightness;
+        bool saturation = false;
+        saturation |= hasSaturation(cluster->endingA);
+        saturation |= hasSaturation(cluster->endingB);
+        cluster->hasSaturation = saturation;
+    }
+}
+
+void Classifier::visualizeClusterProperties(Mat * visualization, Size size) {
+    visualization->release();
+    * visualization = Mat(size, CV_8UC3, uint8_t(0));
+    
+    for (unsigned int y = 0; y < size.height; ++y) {
+        int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
+        Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
+        for (unsigned int x = 0; x < size.width; ++x) {
+            if (p_clusterData[x] != UNDEFINED_CLUSTER && p_visualization[x] == int(0)) {
+                Cluster * cluster = storage->operator[](p_clusterData[x]);
+                //TODO: Bind brightness to average scene brightness!
+                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 50 && cluster->darkness > 75 && cluster->brightness > 75) {
+                    setColor(&p_visualization[x], roughOpacity(RED, cluster->darkness / 255.0));
+                }
+            }
+        }
+    }
+}
+
 void Classifier::classifyClusters() {
     std::vector<Cluster *> remainingClusters = std::vector<Cluster *>();
     std::vector<Cluster *> goalPosts = std::vector<Cluster *>();
@@ -72,7 +161,7 @@ void Classifier::classifyClusters() {
                 isConnected = true;
             }
         }
-        //And if can connect to thehigher end of a goalpost
+        //And if can connect to the higher end of a goalpost
         if (isAbove && isConnected) {
             cluster->classification = GOALCONNECTOR;
             goalConnectors.push_back(cluster);
@@ -175,6 +264,8 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
 void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
     visualization->release();
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
+    Mat mask = Mat(size, CV_32FC1, float(0));
+    Mat darknessMask = Mat(size, CV_8UC1, uint8_t(0));
     //Create a map to look up areas faster later on
     std::vector<std::vector<unsigned int>> map(size.height);
     for (unsigned int y = 0; y < size.height; ++y) {
@@ -236,20 +327,29 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
                     //printf("%f\n", per);
                     for (unsigned int recY = y; recY < y + len; recY++) {
                         Vec3b * p_visualization = visualization->ptr<Vec3b>(recY);
+                        float * p_mask = mask.ptr<float>(recY);
                         for (unsigned int recX = x; recX < x + len; recX++) {
                             if (p_visualization[recX][0] == 0 && p_visualization[recX][2] < 255) {
                                 p_visualization[recX][2] += 1;
                             }
+                            p_mask[recX] += 1;
                         }
                     }
-                    //rectangle(* visualization, Point2i(x, y), Point2i(x + len, y + len), RED);
+                    //rectangle(* visualization, Point2i(x, y), Point2i(x + len, y + len), RED, -1);
                 }
             }
         }
     }
-    //Add darkness visualization
-    imshow("darkness", scenery->darkFrame);
-
+    double max;
+    minMaxLoc(mask, NULL, &max, NULL, NULL);
+    mask.convertTo(mask, CV_8UC1, (255.0 / max));
+    imshow("mask", mask);
+    scenery->darkFrame.copyTo(darknessMask);
+    imshow("darkness", darknessMask);
+    //imshow("darkness", scenery->darkFrame);
+    //bitwise_and(scenery->darkFrame, mask, mask);
+    //imshow("new mask", mask);
+    
     //circle(* visualization, maxLoc, 5, BLUE);
     //add(* visualization, (255 - scenery->darkFrame) * 0.5, * visualization);
 }

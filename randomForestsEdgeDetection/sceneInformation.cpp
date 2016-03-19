@@ -20,9 +20,12 @@ void SceneInformation::findGround() {
     unsigned int factor = 2;
     ResizeFrame(&yuvFrame, 1.0 / factor);
     int tolerance = 40;
-    Vec3b upperGreenYuv(255, 70 + tolerance, 115 + tolerance);
-    Vec3b lowerGreenYuv(0, 70 - tolerance, 115 - tolerance);
+    int avgU = 70;
+    int avgV = 115;
+    Vec3b upperGreenYuv(255, avgU + tolerance, avgV + tolerance);
+    Vec3b lowerGreenYuv(0, avgU - tolerance, avgV - tolerance);
     inRange(yuvFrame, lowerGreenYuv, upperGreenYuv, yuvFrame);
+    //imshow("yuv", yuvFrame);
     int erodeSize = 3;
     erode(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
     dilate(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
@@ -108,7 +111,7 @@ void SceneInformation::findDark() {
     ResizeFrame(&yuvFrame, 1.0 / factor);
     extractChannel(yuvFrame, channel, 0);
     float m = mean(channel)[0];
-    float correction = 0.95;
+    float correction = 0.0; //TEST: Use same info for brightness
     //Darker areas are of more interest, but don't show the threshed areas
     channel = 255 - channel;
     threshold(channel, channel, m * correction, 255, CV_THRESH_TOZERO);
@@ -126,6 +129,13 @@ void SceneInformation::analyzeScene(Mat * _frame) {
     this->darkFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     findGround();
     findDark();
+    darkInArea();
+}
+
+void SceneInformation::darkInArea() {
+    double max;
+    minMaxLoc(darkFrame, NULL, &max, NULL, NULL);
+    //printf("%f\n", max);
 }
 
 bool SceneInformation::isInGround(Point2i point) {

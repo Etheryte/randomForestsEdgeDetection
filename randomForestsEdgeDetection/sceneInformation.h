@@ -23,7 +23,6 @@
 using namespace cv;
 
 class SceneInformation {
-    Mat frame;
     Mat groundFrame;
     void findGround();
     void findDark();
@@ -34,12 +33,14 @@ class SceneInformation {
     Point2i highestRight;
     Point2i highestLeft;
 public:
+    Mat frame;
     SceneInformation();
     Mat darkFrame;
     void analyzeScene(Mat * _frame);
     bool isInGround(Point2i point);
     bool isInDark(Point2i point);
     void drawGround(Mat * _frame);
+    void darkInArea();
 };
 
 #endif /* defined(__randomForestsEdgeDetection__sceneInformation__) */

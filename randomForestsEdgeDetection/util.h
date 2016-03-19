@@ -39,5 +39,6 @@ float distanceX(Point2i a, Point2i b);
 bool operator==(const Vec3b &lhs, const int &rhs);
 void ResizeFrame(Mat * frame, float factor);
 Point2i operator * (const Point2i &point, const unsigned int &n);
+bool outOfBounds (Mat * frame, unsigned int x, unsigned int y);
 
 #endif /* defined(__randomForestsEdgeDetection__util__) */
