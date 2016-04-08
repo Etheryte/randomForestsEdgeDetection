@@ -47,7 +47,7 @@ public:
     
     static int quantizeDirection(float radians);
     Mat getDirections();
-    void newDatasource(Mat * edges);
+    void newDatasource(Mat * edges, bool threshold);
     void computeDirections();
     size_t size();
     void visualizeDirections(Mat * visualization, Size size);

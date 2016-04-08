@@ -312,13 +312,16 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
     this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}};
 };
 
-void ClusteringEngine::newDatasource(Mat *edgeData) {
+void ClusteringEngine::newDatasource(Mat *edgeData, bool threshold) {
     edgeData->copyTo(this->edgeData);
-    //TODO: just make a separate unconverting method
     this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
-    Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
+    //TODO: just make a separate unconverting method?
+    if (threshold) {
+        Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
+        //Testing fattier edges
+        //dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
+    }
     this->narrowEdgeData.convertTo(this->narrowEdgeData, CV_32F, 1.0/255.0);
-    dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
     this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_16SC1, int16_t(UNDEFINED_CLUSTER));
     return;

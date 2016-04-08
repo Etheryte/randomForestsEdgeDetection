@@ -45,12 +45,14 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/bottom_160_120.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/new1.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
     Mat originalFrame, frame, edges, visualization, yuvFrame;
     Mat directionVisualization, clusterVisualization;
+    
+    Mat equalized;
     
     float frameCount = 0;
     VideoCapture cap;
@@ -59,13 +61,16 @@ int main(int argc, const char * argv[]) {
     assert(cap.isOpened());
     bool moveForward = true;
     
-    float startThresh = 0.10;
-    float continueThresh = 0.06;
-    float minClusterMass = 20;
+    float startThresh = 0.01;
+    float continueThresh = 0.01;
+    float minClusterMass = 5;
     float maxClusterMass = 5000;
     ClusteringEngine clustering(startThresh, continueThresh, minClusterMass, maxClusterMass);
     SceneInformation scenery = SceneInformation();
     Classifier classifier(&clustering, &scenery);
+    
+    Scalar means;
+    Scalar stddevs;
     
     namedWindow("", 1);
     setMouseCallback("", clickDebug, &clustering);
@@ -77,11 +82,37 @@ int main(int argc, const char * argv[]) {
         originalFrame = GetFrame(cap, moveForward);
         originalFrame.copyTo(frame);
         
+        bool equalize = true;
+        
+        //Equalize
+        if (equalize) {
+            cvtColor(frame, equalized, CV_BGR2GRAY);
+            equalizeHist(equalized, equalized);
+            meanStdDev(equalized, means, stddevs);
+            if (false) {
+                printf("%f %f\n", means[0], stddevs[0]);
+                show(equalized);
+                while(wait(&moveForward));
+                continue;
+            }
+            
+        }
+        
+        //Edges from equalized
+        if (false) {
+            float adjustedSigma = 0.5 * stddevs[0];
+            Canny(equalized, equalized, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
+            show(equalized);
+            while(wait(&moveForward));
+            continue;
+        }
+        
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
         //Clear up for a new iteration and go
         detector->clear();
         detector->detectEdges(frame, edges);
         
+        //Edges from random forest
         if (false) {
             show(edges);
             while(wait(&moveForward));
@@ -118,7 +149,7 @@ int main(int argc, const char * argv[]) {
         }
         
         //Get weighed directions
-        clustering.newDatasource(&edges);
+        clustering.newDatasource(&edges, true);
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization, frame.size());
         
@@ -141,9 +172,10 @@ int main(int argc, const char * argv[]) {
         //Update clusters with scenery information
         classifier.updateClusters();
         
-        if (true) {
+        //New ball methods
+        if (false) {
             classifier.visualizeClusterProperties(&visualization, frame.size());
-            originalFrame *= 0.5;
+            //originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
             add(originalFrame, visualization, visualization);
             show(visualization);
@@ -155,7 +187,8 @@ int main(int argc, const char * argv[]) {
         classifier.classifyClusters();
         classifier.visualizeClasses(&visualization, frame.size());
         
-        if (true) {
+        //Old ball methods
+        if (false) {
             classifier.visualizeBallRoi(&visualization, frame.size());
             originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);

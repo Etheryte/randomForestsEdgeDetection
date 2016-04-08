@@ -25,7 +25,7 @@ Mat GetFrame(VideoCapture cap, bool moveForward) {
         
         //If we're using the webcam, size things down and flip
         if(cap.get(CV_CAP_PROP_FOURCC) == 0.0) {
-            ResizeFrame(&frame, 0.25);
+            ResizeFrame(&frame, 0.5);
             flip(frame, frame, 1);
         }
         retry--;

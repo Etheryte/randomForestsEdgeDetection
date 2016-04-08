@@ -200,10 +200,11 @@ int Classifier::inGroundCount(Cluster * cluster) {
 }
 
 bool Classifier::possibleGoalPost(Cluster * cluster) {
-    if (cluster->averageDirection < M_PI / 2.0 - 0.5) return false;
-    if (cluster->averageDirection > M_PI / 2.0 + 0.5) return false;
-    if (cluster->length < 50 || cluster->length > 200) return false;
-    if (inGroundCount(cluster) != 1) return false;
+    float deltaPhi = 0.5;
+    if (cluster->averageDirection < M_PI / 2.0 - deltaPhi) return false;
+    if (cluster->averageDirection > M_PI / 2.0 + deltaPhi) return false;
+    if (cluster->length < 40 || cluster->length > 200) return false;
+    if (inGroundCount(cluster) > 1) return false;
     return true;
 }
 
