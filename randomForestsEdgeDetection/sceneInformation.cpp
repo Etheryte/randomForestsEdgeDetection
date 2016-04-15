@@ -177,16 +177,48 @@ void SceneInformation::findGround() {
     leftEdgeTracker = leftEdgeTracker * factor;
     rightEdgeTracker = rightEdgeTracker * factor;
     
+    ResizeFrame(&yuvFrame, factor);
+    
+    //TODO: Move this mess into a separate function and clean it up
+    Point2i polygon1[] = {leftEdgeLowest, leftEdgeTracker, leftEdgeHighest, leftHighestPoint, rightEdgeHighest};
+    Point2i polygon2[] = {rightEdgeHighest, rightEdgeTracker, rightEdgeLowest, leftEdgeLowest};
+    fillConvexPoly(this->groundUnpadded, polygon1, 5, 255);
+    fillConvexPoly(this->groundUnpadded, polygon2, 5, 255);
+    
+    //Padding two ways to ensure edges work
     leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - GROUND_PADDING);
     rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - GROUND_PADDING);
     leftHighestPoint.y = MAX(0, leftHighestPoint.y - GROUND_PADDING);
     rightHighestPoint.y = MAX(0, rightHighestPoint.y - GROUND_PADDING);
+    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y - GROUND_PADDING);
+    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y - GROUND_PADDING);
     
-    ResizeFrame(&yuvFrame, factor);
-    Point2i polygon[] = {leftEdgeLowest, leftEdgeHighest, leftHighestPoint, rightHighestPoint, rightEdgeHighest, rightEdgeLowest};
-    fillConvexPoly(yuvFrame, polygon, 5, 255);
-    yuvFrame.copyTo(groundFrame);
-    //imshow("", groundFrame);
+    //OpenCV convexpoly is lots of fun
+    Point2i polygon3[] = {leftEdgeLowest, leftEdgeTracker, leftEdgeHighest, leftHighestPoint, rightEdgeHighest};
+    Point2i polygon4[] = {rightEdgeHighest, rightEdgeTracker, rightEdgeLowest, leftEdgeLowest};
+    fillConvexPoly(this->groundPaddedUp, polygon3, 5, 255);
+    fillConvexPoly(this->groundPaddedUp, polygon4, 5, 255);
+    
+    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y + 2 * GROUND_PADDING);
+    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y + 2 * GROUND_PADDING);
+    leftHighestPoint.y = MAX(0, leftHighestPoint.y + 2 * GROUND_PADDING);
+    rightHighestPoint.y = MAX(0, rightHighestPoint.y + 2 * GROUND_PADDING);
+    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y + 2 * GROUND_PADDING);
+    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y + 2 * GROUND_PADDING);
+    
+    Point2i polygon5[] = {leftEdgeLowest, leftEdgeTracker, leftEdgeHighest, leftHighestPoint, rightEdgeHighest};
+    Point2i polygon6[] = {rightEdgeHighest, rightEdgeTracker, rightEdgeLowest, leftEdgeLowest};
+    fillConvexPoly(this->groundPaddedDown, polygon5, 5, 255);
+    fillConvexPoly(this->groundPaddedDown, polygon6, 5, 255);
+    
+    //Restore original state for displaying
+    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - GROUND_PADDING);
+    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - GROUND_PADDING);
+    leftHighestPoint.y = MAX(0, leftHighestPoint.y - GROUND_PADDING);
+    rightHighestPoint.y = MAX(0, rightHighestPoint.y - GROUND_PADDING);
+    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y - GROUND_PADDING);
+    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y - GROUND_PADDING);
+    
     groundFound = true;
 }
 
@@ -214,6 +246,9 @@ void SceneInformation::analyzeScene(Mat * _frame) {
     _frame->copyTo(frame);
     this->groundFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     this->darkFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
+    this->groundUnpadded = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
+    this->groundPaddedUp = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
+    this->groundPaddedDown = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     findGround();
     findDark();
     darkInArea();
@@ -225,8 +260,9 @@ void SceneInformation::darkInArea() {
     //printf("%f\n", max);
 }
 
+//TODO: NB! Which pad or unpad version do we want to use here?
 bool SceneInformation::isInGround(Point2i point) {
-    return groundFrame.at<uint8_t>(point) == 255;
+    return groundPaddedUp.at<uint8_t>(point) == 255;
 }
 
 void SceneInformation::drawGround(Mat * _frame) {

@@ -15,12 +15,12 @@ Mat GetFrame(VideoCapture cap, bool moveForward) {
     int speed = 1;
     int retry = 5;
     do {
-        cap.set(CV_CAP_PROP_POS_FRAMES, capCurrentFrame);
         if (moveForward == true) {
             capCurrentFrame += speed;
         } else {
             capCurrentFrame = MAX(capCurrentFrame - speed, 0);
         }
+        cap.set(CV_CAP_PROP_POS_FRAMES, capCurrentFrame);
         cap >> frame;
         
         //If we're using the webcam, size things down and flip

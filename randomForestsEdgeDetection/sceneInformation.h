@@ -36,6 +36,9 @@ class SceneInformation {
     Point2i leftEdgeTracker;
     Point2i rightEdgeTracker;
 public:
+    Mat groundPaddedUp;
+    Mat groundPaddedDown;
+    Mat groundUnpadded;
     Mat frame;
     SceneInformation();
     Mat darkFrame;

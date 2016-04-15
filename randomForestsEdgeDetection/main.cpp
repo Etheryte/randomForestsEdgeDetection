@@ -1,4 +1,4 @@
- //
+//
 //  main.cpp
 //  randomForestsEdgeDetection
 //
@@ -80,13 +80,15 @@ int main(int argc, const char * argv[]) {
         clustering.clear();
         
         originalFrame = GetFrame(cap, moveForward);
-        originalFrame.copyTo(frame);
         
+        //Equalize the frame before finding edges?
         bool equalize = true;
+        //Mask non-ground for random forest edges?
+        bool maskEdges = true;
         
         //Equalize
         if (equalize) {
-            cvtColor(frame, equalized, CV_BGR2GRAY);
+            cvtColor(originalFrame, equalized, CV_BGR2GRAY);
             equalizeHist(equalized, equalized);
             meanStdDev(equalized, means, stddevs);
             if (false) {
@@ -98,19 +100,48 @@ int main(int argc, const char * argv[]) {
             
         }
         
+        //Analyze the scene for information, namely ground
+        scenery.analyzeScene(&originalFrame);
+        if (false) {
+            originalFrame.copyTo(frame);
+            scenery.drawGround(&frame);
+            show(frame);
+            while(wait(&moveForward));
+            continue;
+        }
+        
+        if (maskEdges) {
+            Mat mask;
+            //Ensure no old data remains
+            frame = Mat(originalFrame.size(), CV_8SC3, Vec3b(0,0,0));
+            //Add padding so artificial edge isn't included later
+            bitwise_not(scenery.groundPaddedDown, mask);
+            originalFrame.copyTo(frame, mask);
+            if (false) {
+                imshow("grnd", frame);
+                while(wait(&moveForward));
+                continue;
+            }
+        } else {
+            originalFrame.copyTo(frame);
+        }
+        
         //Random forest edges
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
         detector->clear();
         detector->detectEdges(frame, edges);
         
         //Edges from equalized
-        if (false) {
+        if (equalize) {
             float adjustedSigma = 0.5 * stddevs[0];
             Canny(equalized, equalized, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
-            imshow("forest", edges);
-            show(equalized);
-            while(wait(&moveForward));
-            continue;
+            if (false) {
+                //Compare
+                //imshow("forest", edges);
+                show(equalized);
+                while(wait(&moveForward));
+                continue;
+            }
         }
         
         //Edges from random forest
@@ -120,33 +151,21 @@ int main(int argc, const char * argv[]) {
             continue;
         }
         
-        if (false) {
-            edges.convertTo(edges, CV_8U, 255);
-            bitwise_not(edges, edges);
-            switch (0) {
-                case 0:
-                    Canny(edges, edges, 40, 120);
-                    bitwise_not(edges, edges);
-                    break;
-                case 1:
-                    adaptiveThreshold(edges, edges, 255, CV_ADAPTIVE_THRESH_GAUSSIAN_C, THRESH_BINARY, 3, 2);
-                    break;
-                default:
-                    break;
+        //Edges cut together
+        if (maskEdges) {
+            Mat tmp = Mat(originalFrame.size(), CV_32F, float(0));
+            Mat mask = Mat(scenery.groundPaddedUp);
+            Mat reverseMask;
+            bitwise_not(mask, reverseMask);
+            equalized.convertTo(equalized, CV_32F, 1.0 / 255.0);
+            bitwise_or(edges, tmp, tmp, reverseMask);
+            bitwise_or(equalized, tmp, tmp, mask);
+            tmp.copyTo(edges);
+            if (true) {
+                show(edges);
+                while(wait(&moveForward));
+                continue;
             }
-            show(edges);
-            while(wait(&moveForward));
-            continue;
-        }
-        
-        //Analyze the scene for information
-        scenery.analyzeScene(&originalFrame);
-        
-        if (true) {
-            scenery.drawGround(&frame);
-            show(frame);
-            while(wait(&moveForward));
-            continue;
         }
         
         //Get weighed directions
@@ -154,7 +173,7 @@ int main(int argc, const char * argv[]) {
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization, frame.size());
         
-        if (false) {
+        if (true) {
             show(directionVisualization);
             while(wait(&moveForward));
             continue;
