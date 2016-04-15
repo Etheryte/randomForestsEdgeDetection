@@ -31,13 +31,13 @@ void SceneInformation::findGround() {
     int avgU = 70;
     int avgV = 115;
     int toleranceU = 40;
-    int toleranceV = 30;
+    int toleranceV = 60;
     Vec3b upperGreenYuv(255, avgU + toleranceU, avgV + toleranceV);
     Vec3b lowerGreenYuv(0, avgU - toleranceU, avgV - toleranceV);
     inRange(yuvFrame, lowerGreenYuv, upperGreenYuv, yuvFrame);
     
     //Lose small stand-alone pixels, TODO: cheaper implementation?
-    int erodeSize = 3;
+    int erodeSize = 5;
     Mat structuring = getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1));
     erode(yuvFrame, yuvFrame, structuring);
     dilate(yuvFrame, yuvFrame, structuring);
@@ -152,14 +152,17 @@ void SceneInformation::findGround() {
         rightEdgeTracker.y = MAX(rightEdgeTracker.y, rightHighestPoint.y);
     }
     
-    circle(yuvFrame, leftEdgeLowest, 10, 70, -1);
-    circle(yuvFrame, rightEdgeLowest, 10, 70, -1);
-    circle(yuvFrame, leftEdgeHighest, 10, 70, -1);
-    circle(yuvFrame, rightEdgeHighest, 10, 70, -1);
-    circle(yuvFrame, leftHighestPoint, 10, 70, -1);
-    circle(yuvFrame, rightHighestPoint, 10, 70, -1);
-    circle(yuvFrame, leftEdgeTracker, 10, 150, -1);
-    circle(yuvFrame, rightEdgeTracker, 10, 150, -1);
+    if (false) {
+        circle(yuvFrame, leftEdgeLowest, 10, 70, -1);
+        circle(yuvFrame, rightEdgeLowest, 10, 70, -1);
+        circle(yuvFrame, leftEdgeHighest, 10, 70, -1);
+        circle(yuvFrame, rightEdgeHighest, 10, 70, -1);
+        circle(yuvFrame, leftHighestPoint, 10, 70, -1);
+        circle(yuvFrame, rightHighestPoint, 10, 70, -1);
+        circle(yuvFrame, leftEdgeTracker, 10, 150, -1);
+        circle(yuvFrame, rightEdgeTracker, 10, 150, -1);
+        imshow("yuv", yuvFrame);
+    }
     
     //Resize back
     leftEdgeLowest = leftEdgeLowest * factor;
@@ -228,14 +231,16 @@ bool SceneInformation::isInGround(Point2i point) {
 
 void SceneInformation::drawGround(Mat * _frame) {
     if (groundFound) {
-        line(* _frame, leftEdgeLowest, leftEdgeTracker, GREEN);
-        line(* _frame, leftEdgeTracker, leftEdgeHighest, GREEN);
-        line(* _frame, leftEdgeHighest, leftHighestPoint, GREEN);
-        line(* _frame, leftHighestPoint, rightHighestPoint, GREEN);
-        line(* _frame, rightHighestPoint, rightEdgeHighest, GREEN);
-        line(* _frame, rightEdgeHighest, rightEdgeTracker, GREEN);
-        line(* _frame, rightEdgeTracker, rightEdgeLowest, GREEN);
-        line(* _frame, rightEdgeLowest, leftEdgeLowest, GREEN);
+        Vec3b color = YELLOW;
+        int thickness = 2;
+        line(* _frame, leftEdgeLowest, leftEdgeTracker, color, thickness);
+        line(* _frame, leftEdgeTracker, leftEdgeHighest, color, thickness);
+        line(* _frame, leftEdgeHighest, leftHighestPoint, color, thickness);
+        line(* _frame, leftHighestPoint, rightHighestPoint, color, thickness);
+        line(* _frame, rightHighestPoint, rightEdgeHighest, color, thickness);
+        line(* _frame, rightEdgeHighest, rightEdgeTracker, color, thickness);
+        line(* _frame, rightEdgeTracker, rightEdgeLowest, color, thickness);
+        line(* _frame, rightEdgeLowest, leftEdgeLowest, color, thickness);
     }
 }
 
