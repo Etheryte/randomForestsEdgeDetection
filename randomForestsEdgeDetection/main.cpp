@@ -45,7 +45,7 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/new1.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_3.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -98,19 +98,20 @@ int main(int argc, const char * argv[]) {
             
         }
         
+        //Random forest edges
+        frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
+        detector->clear();
+        detector->detectEdges(frame, edges);
+        
         //Edges from equalized
         if (false) {
             float adjustedSigma = 0.5 * stddevs[0];
             Canny(equalized, equalized, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
+            imshow("forest", edges);
             show(equalized);
             while(wait(&moveForward));
             continue;
         }
-        
-        frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
-        //Clear up for a new iteration and go
-        detector->clear();
-        detector->detectEdges(frame, edges);
         
         //Edges from random forest
         if (false) {
@@ -141,7 +142,7 @@ int main(int argc, const char * argv[]) {
         //Analyze the scene for information
         scenery.analyzeScene(&originalFrame);
         
-        if (false) {
+        if (true) {
             scenery.drawGround(&frame);
             show(frame);
             while(wait(&moveForward));

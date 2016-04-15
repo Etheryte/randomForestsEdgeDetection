@@ -8,98 +8,182 @@
 
 #include "sceneInformation.h"
 
+float distanceRatio (Point2i point, Point2i reference) {
+    float dist = distance(reference, point);
+    if (point.y == 0 || dist == 0) {
+        return 0;
+    }
+    int y = point.y;
+    if (reference.y >= point.y) {
+        y = reference.y - point.y;
+    }
+    //Make distance dominant over height, limits going too low
+    return sqrt(y) / dist;
+}
+
 void SceneInformation::findGround() {
     Mat yuvFrame;
-    highestPoint = UNDEFINED_POINT;
-    lowestRight = UNDEFINED_POINT;
-    lowestLeft = UNDEFINED_POINT;
-    highestRight = UNDEFINED_POINT;
-    highestLeft = UNDEFINED_POINT;
+    
     //Threshold for the color, remove small details lazily
     cvtColor(frame, yuvFrame, CV_BGR2YUV);
     unsigned int factor = 2;
     ResizeFrame(&yuvFrame, 1.0 / factor);
-    int tolerance = 40;
     int avgU = 70;
     int avgV = 115;
-    Vec3b upperGreenYuv(255, avgU + tolerance, avgV + tolerance);
-    Vec3b lowerGreenYuv(0, avgU - tolerance, avgV - tolerance);
+    int toleranceU = 40;
+    int toleranceV = 30;
+    Vec3b upperGreenYuv(255, avgU + toleranceU, avgV + toleranceV);
+    Vec3b lowerGreenYuv(0, avgU - toleranceU, avgV - toleranceV);
     inRange(yuvFrame, lowerGreenYuv, upperGreenYuv, yuvFrame);
-    //imshow("yuv", yuvFrame);
+    
+    //Lose small stand-alone pixels, TODO: cheaper implementation?
     int erodeSize = 3;
-    erode(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
-    dilate(yuvFrame, yuvFrame, getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1)));
-    //Find optimal tangets for the highest point
+    Mat structuring = getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1));
+    erode(yuvFrame, yuvFrame, structuring);
+    dilate(yuvFrame, yuvFrame, structuring);
+    
+    //TODO: Do a bool if all is black check and return if is.
+    /*
+     if ()
+        groundFound = false;
+        return;
+     }
+     */
+    
+    Point2i topLeft = Point2i(0, 0);
+    Point2i topRight = Point2i(yuvFrame.cols, 0);
+    Point2i bottomLeft = Point2i(0, yuvFrame.rows);
+    Point2i bottomRight = Point2i(yuvFrame.cols, yuvFrame.rows);
+    
+    //NB! These defaults are important, they ensure the points compare correctly when finding their positions
+    leftEdgeLowest = Point2i(topRight);
+    rightEdgeLowest = Point2i(topLeft);
+    
+    leftEdgeHighest = Point2i(topRight);
+    rightEdgeHighest = Point2i(topLeft);
+    
+    leftEdgeTracker = Point2i(bottomLeft);
+    rightEdgeTracker = Point2i(bottomRight);
+    
+    leftHighestPoint = Point2i(bottomRight);
+    rightHighestPoint = Point2i(bottomLeft);
+    
+    //Find edge points
     for (unsigned int y = 0; y < yuvFrame.rows; ++y) {
         uint8_t * p_yuvFrame = yuvFrame.ptr<uint8_t>(y);
         for (unsigned int x = 0; x < yuvFrame.cols; ++x) {
             if (p_yuvFrame[x] > 0) {
-                if (highestPoint == UNDEFINED_POINT) {
-                    highestPoint = Point2i(x, y);
+                Point2i point = Point2i(x, y);
+                if (x <= leftEdgeLowest.x) {
+                    leftEdgeLowest = Point2i(point);
                 }
-                int deltaXthis = x - highestPoint.x;
-                int deltaYthis = y - highestPoint.y;
-                if (deltaYthis > 0) {
-                    if (x > highestPoint.x) {
-                        int deltaXold = highestRight.x - highestPoint.x;
-                        int deltaYold = highestRight.y - highestPoint.y;
-                        if (highestRight == UNDEFINED_POINT || abs((deltaXthis)/(deltaYthis)) > abs((deltaXold)/(deltaYold)) ) {
-                            highestRight = Point2i(x, y);
-                        }
-                    } else {
-                        int deltaXold = highestLeft.x - highestPoint.x;
-                        int deltaYold = highestLeft.y - highestPoint.y;
-                        if (highestLeft == UNDEFINED_POINT || abs((deltaXthis)/(deltaYthis)) > abs((deltaXold)/(deltaYold)) ) {
-                            highestLeft = Point2i(x, y);
-                        }
-                    }
+                if (x >= rightEdgeLowest.x) {
+                    rightEdgeLowest = Point2i(point);
                 }
-                if (lowestLeft == UNDEFINED_POINT || x <= lowestLeft.x) {
-                    lowestLeft = Point2i(x, y);
+                float oldDistanceRatio = distanceRatio(leftEdgeHighest, topLeft);
+                float newDistanceRatio = distanceRatio(point, topLeft);
+                if (newDistanceRatio > oldDistanceRatio) {
+                    leftEdgeHighest = Point2i(point);
                 }
-                if (lowestRight == UNDEFINED_POINT || x >= lowestRight.x) {
-                    lowestRight = Point2i(x, y);
+                oldDistanceRatio = distanceRatio(rightEdgeHighest, topRight);
+                newDistanceRatio = distanceRatio(point, topRight);
+                if (newDistanceRatio > oldDistanceRatio) {
+                    rightEdgeHighest = Point2i(point);
                 }
             }
         }
     }
-    if (highestPoint == UNDEFINED_POINT || lowestRight == UNDEFINED_POINT || lowestLeft == UNDEFINED_POINT || highestRight == UNDEFINED_POINT || highestLeft == UNDEFINED_POINT) {
-        groundFound = false;
-        return;
-    }
-    //Extend tangets
-    int deltaX = highestRight.x - highestPoint.x;
-    int deltaY = highestRight.y - highestPoint.y;
-    int gammaX = highestRight.x - lowestRight.x;
-    highestRight.x = lowestRight.x;
-    if (deltaX > 0) {
-        highestRight.y = highestRight.y - deltaY * gammaX/deltaX;
-    }
-    deltaX = highestLeft.x - highestPoint.x;
-    deltaY = highestLeft.y - highestPoint.y;
-    gammaX = highestLeft.x - lowestLeft.x;
-    highestLeft.x = lowestLeft.x;
-    if (deltaX > 0) {
-        highestLeft.y = highestLeft.y - deltaY * gammaX/deltaX;
-    }
-    //Extend to bottom (do we want/need to?)
-    lowestLeft.y = yuvFrame.rows - 1;
-    lowestRight.y = yuvFrame.rows - 1;
     
-    highestPoint = highestPoint * factor;
-    lowestRight = lowestRight * factor;
-    lowestLeft = lowestLeft * factor;
-    highestRight = highestRight * factor;
-    highestLeft = highestLeft * factor;
+    //Clip to edges if we're this close, helps reduce impact of noise
+    int clipDistance = 20;
+    //Move lower edge points as low as possible
+    int lowerY = MAX(leftEdgeLowest.y, rightEdgeLowest.y);
+    if (yuvFrame.rows - lowerY < clipDistance) lowerY = yuvFrame.rows;
+    leftEdgeLowest.y = lowerY;
+    rightEdgeLowest.y = lowerY;
+    if (leftEdgeLowest.x < clipDistance) leftEdgeLowest.x = 0;
+    if (leftEdgeHighest.x < clipDistance) leftEdgeHighest.x = 0;
+    if (yuvFrame.cols - rightEdgeLowest.x < clipDistance) rightEdgeLowest.x = yuvFrame.cols;
+    if (yuvFrame.cols - rightEdgeHighest.x < clipDistance) rightEdgeHighest.x = yuvFrame.cols;
+    if (leftEdgeHighest.y < clipDistance) leftEdgeHighest.y = 0;
+    if (rightEdgeHighest.y < clipDistance) rightEdgeHighest.y = 0;
     
-    highestPoint.y = MAX(0, highestPoint.y - GROUND_PADDING);
-    highestLeft.y = MAX(0, highestLeft.y - GROUND_PADDING);
-    highestRight.y = MAX(0, highestRight.y - GROUND_PADDING);
+    leftEdgeTracker.x = leftEdgeLowest.x;
+    rightEdgeTracker.x = rightEdgeLowest.x;
+    
+    //Find highest points not on edges to build a better matching polygon
+    //Track up from edge bottoms to ensure sanity
+    //Tracks only between bottom edge points, split in their centre
+    //I was lazy here and used clipDistance
+    int delta = rightEdgeLowest.x - leftEdgeLowest.x;
+    for (unsigned int y = yuvFrame.rows; y > 0; --y) {
+        uint8_t * p_yuvFrame = yuvFrame.ptr<uint8_t>(y);
+        for (unsigned int x = leftEdgeLowest.x + (delta / 2.0); x > leftEdgeLowest.x; --x) {
+            if (p_yuvFrame[x] > 0) {
+                Point2i point = Point2i(x, y);
+                if (point.y < leftHighestPoint.y) {
+                    leftHighestPoint = Point2i(point);
+                }
+                if (abs((float)x - leftEdgeTracker.x) < clipDistance && y > leftEdgeHighest.y) {
+                    leftEdgeTracker.y = y;
+                }
+            }
+            //Mirror half
+            int _x = rightEdgeLowest.x - x;
+            if (p_yuvFrame[_x] > 0) {
+                Point2i point = Point2i(_x, y);
+                if (point.y < rightHighestPoint.y) {
+                    rightHighestPoint = Point2i(point);
+                }
+                if (abs((float)_x - rightEdgeTracker.x) < clipDistance && y > rightEdgeHighest.y) {
+                    rightEdgeTracker.y = y;
+                }
+            }
+        }
+    }
+    
+    //If we found no reasonable position, set highest points to edge highest
+    if (leftHighestPoint.y > leftEdgeHighest.y || leftHighestPoint.x < leftEdgeHighest.x) {
+        leftHighestPoint = Point2i(leftEdgeHighest);
+        leftEdgeTracker.y = MAX(leftEdgeTracker.y, leftHighestPoint.y);
+    }
+    if (rightHighestPoint.y > rightEdgeHighest.y || rightHighestPoint.x > rightEdgeHighest.x) {
+        rightHighestPoint = Point2i(rightEdgeHighest);
+        rightEdgeTracker.y = MAX(rightEdgeTracker.y, rightHighestPoint.y);
+    }
+    
+    circle(yuvFrame, leftEdgeLowest, 10, 70, -1);
+    circle(yuvFrame, rightEdgeLowest, 10, 70, -1);
+    circle(yuvFrame, leftEdgeHighest, 10, 70, -1);
+    circle(yuvFrame, rightEdgeHighest, 10, 70, -1);
+    circle(yuvFrame, leftHighestPoint, 10, 70, -1);
+    circle(yuvFrame, rightHighestPoint, 10, 70, -1);
+    circle(yuvFrame, leftEdgeTracker, 10, 150, -1);
+    circle(yuvFrame, rightEdgeTracker, 10, 150, -1);
+    
+    //Resize back
+    leftEdgeLowest = leftEdgeLowest * factor;
+    rightEdgeLowest = rightEdgeLowest * factor;
+    
+    leftEdgeHighest = leftEdgeHighest * factor;
+    rightEdgeHighest = rightEdgeHighest * factor;
+    
+    rightHighestPoint = rightHighestPoint * factor;
+    leftHighestPoint = leftHighestPoint * factor;
+    
+    leftEdgeTracker = leftEdgeTracker * factor;
+    rightEdgeTracker = rightEdgeTracker * factor;
+    
+    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - GROUND_PADDING);
+    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - GROUND_PADDING);
+    leftHighestPoint.y = MAX(0, leftHighestPoint.y - GROUND_PADDING);
+    rightHighestPoint.y = MAX(0, rightHighestPoint.y - GROUND_PADDING);
     
     ResizeFrame(&yuvFrame, factor);
-    Point2i polygon[] = {lowestLeft, highestLeft, highestPoint, highestRight, lowestRight};
+    Point2i polygon[] = {leftEdgeLowest, leftEdgeHighest, leftHighestPoint, rightHighestPoint, rightEdgeHighest, rightEdgeLowest};
     fillConvexPoly(yuvFrame, polygon, 5, 255);
     yuvFrame.copyTo(groundFrame);
+    //imshow("", groundFrame);
     groundFound = true;
 }
 
@@ -144,11 +228,14 @@ bool SceneInformation::isInGround(Point2i point) {
 
 void SceneInformation::drawGround(Mat * _frame) {
     if (groundFound) {
-        line(* _frame, lowestLeft, highestLeft, GREEN);
-        line(* _frame, highestLeft, highestPoint, GREEN);
-        line(* _frame, highestPoint, highestRight, GREEN);
-        line(* _frame, highestRight, lowestRight, GREEN);
-        line(* _frame, lowestRight, lowestLeft, GREEN);
+        line(* _frame, leftEdgeLowest, leftEdgeTracker, GREEN);
+        line(* _frame, leftEdgeTracker, leftEdgeHighest, GREEN);
+        line(* _frame, leftEdgeHighest, leftHighestPoint, GREEN);
+        line(* _frame, leftHighestPoint, rightHighestPoint, GREEN);
+        line(* _frame, rightHighestPoint, rightEdgeHighest, GREEN);
+        line(* _frame, rightEdgeHighest, rightEdgeTracker, GREEN);
+        line(* _frame, rightEdgeTracker, rightEdgeLowest, GREEN);
+        line(* _frame, rightEdgeLowest, leftEdgeLowest, GREEN);
     }
 }
 

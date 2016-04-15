@@ -27,11 +27,14 @@ class SceneInformation {
     void findGround();
     void findDark();
     bool groundFound;
-    Point2i highestPoint;
-    Point2i lowestRight;
-    Point2i lowestLeft;
-    Point2i highestRight;
-    Point2i highestLeft;
+    Point2i leftHighestPoint;
+    Point2i rightHighestPoint;
+    Point2i leftEdgeLowest;
+    Point2i rightEdgeLowest;
+    Point2i leftEdgeHighest;
+    Point2i rightEdgeHighest;
+    Point2i leftEdgeTracker;
+    Point2i rightEdgeTracker;
 public:
     Mat frame;
     SceneInformation();
