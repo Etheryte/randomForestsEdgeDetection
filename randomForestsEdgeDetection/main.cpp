@@ -52,7 +52,7 @@ int main(int argc, const char * argv[]) {
     Mat originalFrame, frame, forestEdges, visualization, yuvFrame;
     Mat directionVisualization, clusterVisualization;
     
-    Mat equalized, cannyEdges, directions, joinedEdges;
+    Mat equalized, unequalized, cannyEdges, directions, joinedEdges;
     
     float frameCount = 0;
     VideoCapture cap;
@@ -80,6 +80,7 @@ int main(int argc, const char * argv[]) {
         clustering.clear();
         
         originalFrame = GetFrame(cap, moveForward);
+        imshow("original", originalFrame);
         
         //Equalize the frame before finding edges?
         bool equalize = true;
@@ -89,6 +90,7 @@ int main(int argc, const char * argv[]) {
         //Equalize
         if (equalize) {
             cvtColor(originalFrame, equalized, CV_BGR2GRAY);
+            cvtColor(originalFrame, unequalized, CV_BGR2GRAY);
             equalizeHist(equalized, equalized);
             meanStdDev(equalized, means, stddevs);
             if (false) {
@@ -169,8 +171,9 @@ int main(int argc, const char * argv[]) {
         //Basis for directions
         directions = Mat(originalFrame.size(), CV_32F, float(0));
         equalized.convertTo(equalized, CV_32F, 1.0 / 255.0);
+        unequalized.convertTo(unequalized, CV_32F, 1.0 / 255.0);
         bitwise_or(forestEdges, directions, directions, reverseMask);
-        bitwise_or(equalized, directions, directions, mask);
+        bitwise_or(unequalized, directions, directions, mask);
         if (false) {
             show(directions);
             while(wait(&moveForward));
@@ -182,7 +185,7 @@ int main(int argc, const char * argv[]) {
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization, frame.size());
         
-        if (true) {
+        if (false) {
             show(directionVisualization);
             while(wait(&moveForward));
             continue;
@@ -192,7 +195,7 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (false) {
+        if (true) {
             show(clusterVisualization);
             while(wait(&moveForward));
             continue;

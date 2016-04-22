@@ -12,7 +12,7 @@
 //Divide all directions into 4 categories, the compiler will happily optimize this
 int ClusteringEngine::quantizeDirection(float radians) {
 #define STEP (1.0/8.0 * M_PI)
-    if (radians == -100) return 4;
+    if (radians == UNDEFINED_DIRECTION) return 4;
     if ( (radians >= -1 * STEP && radians < 1 * STEP) || (radians >= 7 * STEP || radians < -7 * STEP)  ) return 0;
     if ( (radians >= 1 * STEP && radians < 3 * STEP)  || (radians >= -7 * STEP && radians < -5 * STEP) ) return 1;
     if ( (radians >= 3 * STEP && radians < 5 * STEP)  || (radians >= -5 * STEP && radians < -3 * STEP) ) return 2;
@@ -20,17 +20,50 @@ int ClusteringEngine::quantizeDirection(float radians) {
     return -1;
 };
 
+Mat orientationMap(const cv::Mat& mag, const cv::Mat& ori, double thresh = 1.0)
+{
+    Mat oriMap = Mat::zeros(ori.size(), CV_8UC3);
+    Vec3b red(0, 0, 255);
+    Vec3b cyan(255, 255, 0);
+    Vec3b green(0, 255, 0);
+    Vec3b yellow(0, 255, 255);
+    for(int i = 0; i < mag.rows*mag.cols; i++)
+    {
+        float* magPixel = reinterpret_cast<float*>(mag.data + i*sizeof(float));
+        if(*magPixel > thresh)
+        {
+            float* oriPixel = reinterpret_cast<float*>(ori.data + i*sizeof(float));
+            Vec3b* mapPixel = reinterpret_cast<Vec3b*>(oriMap.data + i*3*sizeof(char));
+            if(*oriPixel < 90.0)
+                *mapPixel = red;
+            else if(*oriPixel >= 90.0 && *oriPixel < 180.0)
+                *mapPixel = cyan;
+            else if(*oriPixel >= 180.0 && *oriPixel < 270.0)
+                *mapPixel = green;
+            else if(*oriPixel >= 270.0 && *oriPixel < 360.0)
+                *mapPixel = yellow;
+        }
+    }
+    
+    return oriMap;
+}
+
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
     
     //imshow(">", directionBasis);
     
-    Sobel(directionBasis, frame_x, CV_32F, 1, 0, 3);
-    Sobel(directionBasis, frame_y, CV_32F, 0, 1, 3);
+    int sobelArperture = 3;
     
-    blur(frame_x, frame_x, Size(3,3));
-    blur(frame_y, frame_y, Size(3,3));
+    Sobel(directionBasis, frame_x, CV_32F, 1, 0, sobelArperture);
+    Sobel(directionBasis, frame_y, CV_32F, 0, 1, sobelArperture);
     
+    //Blurring and thresholding directions allows us to remove a tremendous amount of noise
+    int blurGamma = 3;
+    if (blurGamma) {
+        blur(frame_x, frame_x, Size(blurGamma, blurGamma));
+        blur(frame_y, frame_y, Size(blurGamma, blurGamma));
+    }
     Mat mag;
     magnitude(frame_x, frame_y, mag);
 
@@ -47,7 +80,7 @@ void ClusteringEngine::computeDirections() {
                 float direction = atan2(p_y[x], p_x[x]);
                 p_directionData[x] = direction;
             } else {
-                p_directionData[x] = -100;
+                p_directionData[x] = UNDEFINED_DIRECTION;
             }
         }
     }
@@ -75,6 +108,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
     if (outOfBounds(&directionData, x, y)) return;
     if (p_edgeData[x] < continueThresh) return;
     float * p_directionData = directionData.ptr<float>(y);
+    if (p_directionData[x] == UNDEFINED_DIRECTION) return;
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     
     //This pixel already belongs to another cluster, don't track crossings here as it would track multiple times
@@ -261,7 +295,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
         for (unsigned int x = 0; x < size.width; ++x) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
-                switch (0) {
+                switch (1) {
                     case 0:
                         setColor(&p_visualization[x], roughOpacity(WHITE, 0.25));
                         break;
@@ -299,7 +333,7 @@ void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
             }
         }
     }
-    //return;
+    return;
     //Draw bounding boxes
     for (std::vector<Cluster>::iterator it = storage.begin(); it != storage.end(); ++it) {
         Cluster cluster = (* it);
@@ -324,7 +358,7 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
     this->maxClusterMass = maxClusterMass;
     this->storage = ClusterStorage();
     //horizontal = red; diagonal down = green; vertical = blue; diagonal up = yellow; white = debug info
-    this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}, {0, 0, 0}};
+    this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}, {30, 30, 30}};
 };
 
 void ClusteringEngine::newDatasource(Mat *edgeData, Mat *directionBasis, bool threshold) {
