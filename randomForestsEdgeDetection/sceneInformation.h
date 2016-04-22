@@ -23,7 +23,6 @@
 using namespace cv;
 
 class SceneInformation {
-    Mat groundFrame;
     void findGround();
     void findDark();
     bool groundFound;

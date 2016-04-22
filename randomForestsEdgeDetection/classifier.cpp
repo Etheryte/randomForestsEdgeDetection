@@ -66,8 +66,8 @@ int Classifier::getBrightness(Point2i point) {
 }
 
 bool Classifier::hasSaturation(Point2i point) {
-    int radius = 6;
-    int maxDelta = 20; //Naíve check
+    int radius = 3;
+    int maxDelta = 40; //Naíve check
     unsigned int _y = point.y - (int)(radius / 2);
     unsigned int _x = point.x - (int)(radius / 2);
     for (unsigned int i = 0; i < radius; i++) {
@@ -111,8 +111,9 @@ void Classifier::visualizeClusterProperties(Mat * visualization, Size size) {
             if (p_clusterData[x] != UNDEFINED_CLUSTER && p_visualization[x] == int(0)) {
                 Cluster * cluster = storage->operator[](p_clusterData[x]);
                 //TODO: Bind brightness to average scene brightness!
-                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 50 && cluster->darkness > 75 && cluster->brightness > 75) {
-                    setColor(&p_visualization[x], roughOpacity(RED, cluster->darkness / 255.0));
+                //
+                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 50 && cluster->darkness >= 75 && cluster->brightness > 75) {
+                    setColor(&p_visualization[x], RED);
                 }
             }
         }
@@ -346,7 +347,7 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
     mask.convertTo(mask, CV_8UC1, (255.0 / max));
     imshow("mask", mask);
     scenery->darkFrame.copyTo(darknessMask);
-    imshow("darkness", darknessMask);
+    //imshow("darkness", darknessMask);
     //imshow("darkness", scenery->darkFrame);
     //bitwise_and(scenery->darkFrame, mask, mask);
     //imshow("new mask", mask);

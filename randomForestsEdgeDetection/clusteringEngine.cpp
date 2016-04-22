@@ -12,6 +12,11 @@
 //Divide all directions into 4 categories, the compiler will happily optimize this
 int ClusteringEngine::quantizeDirection(float radians) {
 #define STEP (1.0/8.0 * M_PI)
+    //Noise comparison demo
+    if (true) {
+        if (radians == UNDEFINED_DIRECTION) return 0;
+        return 2;
+    }
     if (radians == UNDEFINED_DIRECTION) return 4;
     if ( (radians >= -1 * STEP && radians < 1 * STEP) || (radians >= 7 * STEP || radians < -7 * STEP)  ) return 0;
     if ( (radians >= 1 * STEP && radians < 3 * STEP)  || (radians >= -7 * STEP && radians < -5 * STEP) ) return 1;
@@ -66,17 +71,18 @@ void ClusteringEngine::computeDirections() {
     }
     Mat mag;
     magnitude(frame_x, frame_y, mag);
-
-    threshold(mag, mag, 0.4, 1.0, CV_THRESH_TOZERO);
-    imshow("?", mag);
+    float thresh = 0.4;
+    threshold(mag, mag, thresh, 1.0, CV_THRESH_TOZERO);
+    //imshow("magnitudes", mag);
     
     for (unsigned int y = 0; y < directionData.rows; ++y) {
-        float * p_edgeData = mag.ptr<float>(y);
+        //NB! We don't use edge data here but the different magnitude data instead
+        float * p_magnitudeData = mag.ptr<float>(y);
         float * p_x  = frame_x.ptr<float>(y);
         float * p_y  = frame_y.ptr<float>(y);
         float * p_directionData = directionData.ptr<float>(y);
         for (unsigned int x = 0; x < directionData.cols; ++x) {
-            if (p_edgeData[x] > 0) {
+            if (p_magnitudeData[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
                 p_directionData[x] = direction;
             } else {

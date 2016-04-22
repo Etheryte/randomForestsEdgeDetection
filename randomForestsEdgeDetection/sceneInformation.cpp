@@ -244,7 +244,7 @@ void SceneInformation::findDark() {
     channel = 255 - channel;
     threshold(channel, channel, m * correction, 255, CV_THRESH_TOZERO);
     ResizeFrame(&channel, factor);
-    bitwise_and(channel, groundFrame, channel);
+    bitwise_and(channel, groundUnpadded, channel);
     cvtColor(channel, channel, CV_GRAY2BGR);
     channel.copyTo(darkFrame);
     //imshow("darkness", channel);
@@ -253,7 +253,6 @@ void SceneInformation::findDark() {
 
 void SceneInformation::analyzeScene(Mat * _frame) {
     _frame->copyTo(frame);
-    this->groundFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     this->darkFrame = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     this->groundUnpadded = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
     this->groundPaddedUp = Mat(this->frame.size(), CV_8UC1, uint8_t(0));
@@ -276,7 +275,7 @@ bool SceneInformation::isInGround(Point2i point) {
 
 void SceneInformation::drawGround(Mat * _frame) {
     if (groundFound) {
-        Vec3b color = YELLOW;
+        Vec3b color = RED;
         int thickness = 2;
         line(* _frame, leftEdgeLowest, leftEdgeTracker, color, thickness);
         line(* _frame, leftEdgeTracker, leftEdgeHighest, color, thickness);

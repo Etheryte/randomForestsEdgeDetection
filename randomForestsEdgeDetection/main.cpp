@@ -61,8 +61,8 @@ int main(int argc, const char * argv[]) {
     assert(cap.isOpened());
     bool moveForward = true;
     
-    float startThresh = 0.01;
-    float continueThresh = 0.01;
+    float startThresh = 0.9;
+    float continueThresh = 0.5;
     float minClusterMass = 5;
     float maxClusterMass = 5000;
     ClusteringEngine clustering(startThresh, continueThresh, minClusterMass, maxClusterMass);
@@ -80,7 +80,7 @@ int main(int argc, const char * argv[]) {
         clustering.clear();
         
         originalFrame = GetFrame(cap, moveForward);
-        imshow("original", originalFrame);
+        //imshow("original", originalFrame);
         
         //Equalize the frame before finding edges?
         bool equalize = true;
@@ -195,7 +195,7 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (true) {
+        if (false) {
             show(clusterVisualization);
             while(wait(&moveForward));
             continue;
@@ -205,7 +205,7 @@ int main(int argc, const char * argv[]) {
         classifier.updateClusters();
         
         //New ball methods
-        if (false) {
+        if (true) {
             classifier.visualizeClusterProperties(&visualization, frame.size());
             //originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
@@ -229,7 +229,7 @@ int main(int argc, const char * argv[]) {
             while(wait(&moveForward));
             continue;
         }
-        
+
         originalFrame *= 0.5;
         add(visualization, originalFrame, visualization);
         
