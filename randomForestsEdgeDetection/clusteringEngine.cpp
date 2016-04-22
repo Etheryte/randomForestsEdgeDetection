@@ -12,6 +12,7 @@
 //Divide all directions into 4 categories, the compiler will happily optimize this
 int ClusteringEngine::quantizeDirection(float radians) {
 #define STEP (1.0/8.0 * M_PI)
+    if (radians == -100) return 4;
     if ( (radians >= -1 * STEP && radians < 1 * STEP) || (radians >= 7 * STEP || radians < -7 * STEP)  ) return 0;
     if ( (radians >= 1 * STEP && radians < 3 * STEP)  || (radians >= -7 * STEP && radians < -5 * STEP) ) return 1;
     if ( (radians >= 3 * STEP && radians < 5 * STEP)  || (radians >= -5 * STEP && radians < -3 * STEP) ) return 2;
@@ -21,11 +22,23 @@ int ClusteringEngine::quantizeDirection(float radians) {
 
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
-    Sobel(edgeData, frame_x, CV_32F, 1, 0);
-    Sobel(edgeData, frame_y, CV_32F, 0, 1);
+    
+    //imshow(">", directionBasis);
+    
+    Sobel(directionBasis, frame_x, CV_32F, 1, 0, 3);
+    Sobel(directionBasis, frame_y, CV_32F, 0, 1, 3);
+    
+    blur(frame_x, frame_x, Size(3,3));
+    blur(frame_y, frame_y, Size(3,3));
+    
+    Mat mag;
+    magnitude(frame_x, frame_y, mag);
+
+    threshold(mag, mag, 0.4, 1.0, CV_THRESH_TOZERO);
+    imshow("?", mag);
     
     for (unsigned int y = 0; y < directionData.rows; ++y) {
-        float * p_edgeData = edgeData.ptr<float>(y);
+        float * p_edgeData = mag.ptr<float>(y);
         float * p_x  = frame_x.ptr<float>(y);
         float * p_y  = frame_y.ptr<float>(y);
         float * p_directionData = directionData.ptr<float>(y);
@@ -33,6 +46,8 @@ void ClusteringEngine::computeDirections() {
             if (p_edgeData[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
                 p_directionData[x] = direction;
+            } else {
+                p_directionData[x] = -100;
             }
         }
     }
@@ -308,12 +323,13 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
     this->minClusterMass = minClusterMass;
     this->maxClusterMass = maxClusterMass;
     this->storage = ClusterStorage();
-    //horizontal = red; diagonal down = green; vertical = blue; diagonal up = yellow
-    this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}};
+    //horizontal = red; diagonal down = green; vertical = blue; diagonal up = yellow; white = debug info
+    this->colors = {{0, 0, 255}, {0, 255, 0}, {255, 0, 0}, {0, 255, 255}, {0, 0, 0}};
 };
 
-void ClusteringEngine::newDatasource(Mat *edgeData, bool threshold) {
+void ClusteringEngine::newDatasource(Mat *edgeData, Mat *directionBasis, bool threshold) {
     edgeData->copyTo(this->edgeData);
+    directionBasis->copyTo(this->directionBasis);
     this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
     //TODO: just make a separate unconverting method?
     if (threshold) {
@@ -330,6 +346,7 @@ void ClusteringEngine::newDatasource(Mat *edgeData, bool threshold) {
 void ClusteringEngine::clear() {
     this->storage.clear();
     this->edgeData.release();
+    this->directionBasis.release();
     this->directionData.release();
     this->clusterData.release();
 }

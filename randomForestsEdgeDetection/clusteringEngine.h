@@ -29,6 +29,7 @@ using namespace cv::ximgproc;
 class ClusteringEngine {
     //General info
     std::vector<Vec3b> colors;
+    Mat directionBasis;
     Mat directionData;
     Mat edgeData;
     Mat narrowEdgeData;
@@ -47,7 +48,7 @@ public:
     
     static int quantizeDirection(float radians);
     Mat getDirections();
-    void newDatasource(Mat * edges, bool threshold);
+    void newDatasource(Mat * edgeData, Mat *directionBasis, bool threshold);
     void computeDirections();
     size_t size();
     void visualizeDirections(Mat * visualization, Size size);

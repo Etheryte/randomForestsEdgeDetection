@@ -49,10 +49,10 @@ int main(int argc, const char * argv[]) {
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
-    Mat originalFrame, frame, edges, visualization, yuvFrame;
+    Mat originalFrame, frame, forestEdges, visualization, yuvFrame;
     Mat directionVisualization, clusterVisualization;
     
-    Mat equalized;
+    Mat equalized, cannyEdges, directions, joinedEdges;
     
     float frameCount = 0;
     VideoCapture cap;
@@ -100,7 +100,7 @@ int main(int argc, const char * argv[]) {
             
         }
         
-        //Analyze the scene for information, namely ground
+        //Analyze the scene for information
         scenery.analyzeScene(&originalFrame);
         if (false) {
             originalFrame.copyTo(frame);
@@ -129,12 +129,12 @@ int main(int argc, const char * argv[]) {
         //Random forest edges
         frame.convertTo(frame, CV_32F, 1.0 / 255.0); //Between 0.0 and 1.0
         detector->clear();
-        detector->detectEdges(frame, edges);
+        detector->detectEdges(frame, forestEdges);
         
         //Edges from equalized
         if (equalize) {
             float adjustedSigma = 0.5 * stddevs[0];
-            Canny(equalized, equalized, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
+            Canny(equalized, cannyEdges, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
             if (false) {
                 //Compare
                 //imshow("forest", edges);
@@ -146,30 +146,39 @@ int main(int argc, const char * argv[]) {
         
         //Edges from random forest
         if (false) {
-            show(edges);
+            show(forestEdges);
             while(wait(&moveForward));
             continue;
         }
         
-        //Edges cut together
-        if (maskEdges) {
-            Mat tmp = Mat(originalFrame.size(), CV_32F, float(0));
-            Mat mask = Mat(scenery.groundPaddedUp);
-            Mat reverseMask;
-            bitwise_not(mask, reverseMask);
-            equalized.convertTo(equalized, CV_32F, 1.0 / 255.0);
-            bitwise_or(edges, tmp, tmp, reverseMask);
-            bitwise_or(equalized, tmp, tmp, mask);
-            tmp.copyTo(edges);
-            if (true) {
-                show(edges);
-                while(wait(&moveForward));
-                continue;
-            }
+        //Cut edges together
+        Mat mask = Mat(scenery.groundPaddedUp);
+        Mat reverseMask;
+        bitwise_not(mask, reverseMask);
+        
+        joinedEdges = Mat(originalFrame.size(), CV_32F, float(0));
+        cannyEdges.convertTo(cannyEdges, CV_32F, 1.0 / 255.0);
+        bitwise_or(forestEdges, joinedEdges, joinedEdges, reverseMask);
+        bitwise_or(cannyEdges, joinedEdges, joinedEdges, mask);
+        if (false) {
+            show(joinedEdges);
+            while(wait(&moveForward));
+            continue;
+        }
+        
+        //Basis for directions
+        directions = Mat(originalFrame.size(), CV_32F, float(0));
+        equalized.convertTo(equalized, CV_32F, 1.0 / 255.0);
+        bitwise_or(forestEdges, directions, directions, reverseMask);
+        bitwise_or(equalized, directions, directions, mask);
+        if (false) {
+            show(directions);
+            while(wait(&moveForward));
+            continue;
         }
         
         //Get weighed directions
-        clustering.newDatasource(&edges, true);
+        clustering.newDatasource(&joinedEdges, &directions, true);
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization, frame.size());
         

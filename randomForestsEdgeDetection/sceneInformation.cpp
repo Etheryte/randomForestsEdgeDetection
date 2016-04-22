@@ -45,8 +45,8 @@ void SceneInformation::findGround() {
     //TODO: Do a bool if all is black check and return if is.
     /*
      if ()
-        groundFound = false;
-        return;
+     groundFound = false;
+     return;
      }
      */
     
@@ -142,6 +142,13 @@ void SceneInformation::findGround() {
         }
     }
     
+    //Due to overcoverage, the two highest points may be switched
+    if (leftHighestPoint.x > rightHighestPoint.x) {
+        Point2i tmp = Point2i(leftHighestPoint);
+        leftHighestPoint = Point2i(rightHighestPoint);
+        rightHighestPoint = Point2i(tmp);
+    }
+    
     //If we found no reasonable position, set highest points to edge highest
     if (leftHighestPoint.y > leftEdgeHighest.y || leftHighestPoint.x < leftEdgeHighest.x) {
         leftHighestPoint = Point2i(leftEdgeHighest);
@@ -186,38 +193,40 @@ void SceneInformation::findGround() {
     fillConvexPoly(this->groundUnpadded, polygon2, 5, 255);
     
     //Padding two ways to ensure edges work
-    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - GROUND_PADDING);
-    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - GROUND_PADDING);
-    leftHighestPoint.y = MAX(0, leftHighestPoint.y - GROUND_PADDING);
-    rightHighestPoint.y = MAX(0, rightHighestPoint.y - GROUND_PADDING);
-    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y - GROUND_PADDING);
-    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y - GROUND_PADDING);
+    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y + GROUND_PADDING);
+    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y + GROUND_PADDING);
+    leftHighestPoint.y = MAX(0, leftHighestPoint.y + GROUND_PADDING);
+    rightHighestPoint.y = MAX(0, rightHighestPoint.y + GROUND_PADDING);
+    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y + GROUND_PADDING);
+    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y + GROUND_PADDING);
     
     //OpenCV convexpoly is lots of fun
     Point2i polygon3[] = {leftEdgeLowest, leftEdgeTracker, leftEdgeHighest, leftHighestPoint, rightEdgeHighest};
     Point2i polygon4[] = {rightEdgeHighest, rightEdgeTracker, rightEdgeLowest, leftEdgeLowest};
-    fillConvexPoly(this->groundPaddedUp, polygon3, 5, 255);
-    fillConvexPoly(this->groundPaddedUp, polygon4, 5, 255);
+    fillConvexPoly(this->groundPaddedDown, polygon3, 5, 255);
+    fillConvexPoly(this->groundPaddedDown, polygon4, 5, 255);
     
-    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y + 2 * GROUND_PADDING);
-    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y + 2 * GROUND_PADDING);
-    leftHighestPoint.y = MAX(0, leftHighestPoint.y + 2 * GROUND_PADDING);
-    rightHighestPoint.y = MAX(0, rightHighestPoint.y + 2 * GROUND_PADDING);
-    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y + 2 * GROUND_PADDING);
-    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y + 2 * GROUND_PADDING);
+    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - 2 * GROUND_PADDING);
+    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - 2 * GROUND_PADDING);
+    leftHighestPoint.y = MAX(0, leftHighestPoint.y - 2 * GROUND_PADDING);
+    rightHighestPoint.y = MAX(0, rightHighestPoint.y - 2 * GROUND_PADDING);
+    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y - 2 * GROUND_PADDING);
+    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y - 2 * GROUND_PADDING);
     
     Point2i polygon5[] = {leftEdgeLowest, leftEdgeTracker, leftEdgeHighest, leftHighestPoint, rightEdgeHighest};
     Point2i polygon6[] = {rightEdgeHighest, rightEdgeTracker, rightEdgeLowest, leftEdgeLowest};
-    fillConvexPoly(this->groundPaddedDown, polygon5, 5, 255);
-    fillConvexPoly(this->groundPaddedDown, polygon6, 5, 255);
+    fillConvexPoly(this->groundPaddedUp, polygon5, 5, 255);
+    fillConvexPoly(this->groundPaddedUp, polygon6, 5, 255);
     
     //Restore original state for displaying
-    leftEdgeHighest.y = MAX(0, leftEdgeHighest.y - GROUND_PADDING);
-    rightEdgeHighest.y = MAX(0, rightEdgeHighest.y - GROUND_PADDING);
-    leftHighestPoint.y = MAX(0, leftHighestPoint.y - GROUND_PADDING);
-    rightHighestPoint.y = MAX(0, rightHighestPoint.y - GROUND_PADDING);
-    leftEdgeTracker.y = MAX(0, leftEdgeTracker.y - GROUND_PADDING);
-    rightEdgeTracker.y = MAX(0, rightEdgeTracker.y - GROUND_PADDING);
+    /*
+     leftEdgeHighest.y = MAX(0, leftEdgeHighest.y + GROUND_PADDING);
+     rightEdgeHighest.y = MAX(0, rightEdgeHighest.y + GROUND_PADDING);
+     leftHighestPoint.y = MAX(0, leftHighestPoint.y + GROUND_PADDING);
+     rightHighestPoint.y = MAX(0, rightHighestPoint.y + GROUND_PADDING);
+     leftEdgeTracker.y = MAX(0, leftEdgeTracker.y + GROUND_PADDING);
+     rightEdgeTracker.y = MAX(0, rightEdgeTracker.y + GROUND_PADDING);
+     */
     
     groundFound = true;
 }
