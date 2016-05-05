@@ -13,7 +13,7 @@
 int ClusteringEngine::quantizeDirection(float radians) {
 #define STEP (1.0/8.0 * M_PI)
     //Noise comparison demo
-    if (true) {
+    if (false) {
         if (radians == UNDEFINED_DIRECTION) return 0;
         return 2;
     }
@@ -24,34 +24,6 @@ int ClusteringEngine::quantizeDirection(float radians) {
     if ( (radians >= 5 * STEP && radians < 7 * STEP)  || (radians >= -3 * STEP && radians < -1 * STEP) ) return 3;
     return -1;
 };
-
-Mat orientationMap(const cv::Mat& mag, const cv::Mat& ori, double thresh = 1.0)
-{
-    Mat oriMap = Mat::zeros(ori.size(), CV_8UC3);
-    Vec3b red(0, 0, 255);
-    Vec3b cyan(255, 255, 0);
-    Vec3b green(0, 255, 0);
-    Vec3b yellow(0, 255, 255);
-    for(int i = 0; i < mag.rows*mag.cols; i++)
-    {
-        float* magPixel = reinterpret_cast<float*>(mag.data + i*sizeof(float));
-        if(*magPixel > thresh)
-        {
-            float* oriPixel = reinterpret_cast<float*>(ori.data + i*sizeof(float));
-            Vec3b* mapPixel = reinterpret_cast<Vec3b*>(oriMap.data + i*3*sizeof(char));
-            if(*oriPixel < 90.0)
-                *mapPixel = red;
-            else if(*oriPixel >= 90.0 && *oriPixel < 180.0)
-                *mapPixel = cyan;
-            else if(*oriPixel >= 180.0 && *oriPixel < 270.0)
-                *mapPixel = green;
-            else if(*oriPixel >= 270.0 && *oriPixel < 360.0)
-                *mapPixel = yellow;
-        }
-    }
-    
-    return oriMap;
-}
 
 void ClusteringEngine::computeDirections() {
     Mat frame_x, frame_y;
@@ -75,13 +47,13 @@ void ClusteringEngine::computeDirections() {
     threshold(mag, mag, thresh, 1.0, CV_THRESH_TOZERO);
     //imshow("magnitudes", mag);
     
-    for (unsigned int y = 0; y < directionData.rows; ++y) {
+    for (unsigned int y = 0; y < directionData.rows; y++) {
         //NB! We don't use edge data here but the different magnitude data instead
         float * p_magnitudeData = mag.ptr<float>(y);
         float * p_x  = frame_x.ptr<float>(y);
         float * p_y  = frame_y.ptr<float>(y);
         float * p_directionData = directionData.ptr<float>(y);
-        for (unsigned int x = 0; x < directionData.cols; ++x) {
+        for (unsigned int x = 0; x < directionData.cols; x++) {
             if (p_magnitudeData[x] > 0) {
                 float direction = atan2(p_y[x], p_x[x]);
                 p_directionData[x] = direction;
@@ -95,11 +67,11 @@ void ClusteringEngine::computeDirections() {
 void ClusteringEngine::visualizeDirections(Mat * visualization, Size size) {
     visualization->release();
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
-    for (unsigned int y = 0; y < size.height; ++y) {
+    for (unsigned int y = 0; y < size.height; y++) {
         float * p_directionData = directionData.ptr<float>(y);
         float * p_edgeData = narrowEdgeData.ptr<float>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < size.width; ++x) {
+        for (unsigned int x = 0; x < size.width; x++) {
             if (p_edgeData[x] > 0) {
                 setColor(&p_visualization[x], roughOpacity(colors[quantizeDirection(p_directionData[x])], p_edgeData[x]));
             }
@@ -108,7 +80,7 @@ void ClusteringEngine::visualizeDirections(Mat * visualization, Size size) {
 }
 
 //Did we find a new point at given coordinates?
-void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection) {
+void ClusteringEngine::clusterNeighbours (signed int x, signed int y, Cluster * cluster, float originalDirection, float previousDirection) {
     if (cluster->mass >= maxClusterMass) return;
     float * p_edgeData = narrowEdgeData.ptr<float>(y);
     if (outOfBounds(&directionData, x, y)) return;
@@ -185,7 +157,7 @@ void ClusteringEngine::clusterNeighbours (unsigned int x, unsigned int y, Cluste
 };
 
 //Also finds crossings
-void ClusteringEngine::remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to) {
+void ClusteringEngine::remapAnalyzeCluster(signed int x, signed int y, int16_t from, int16_t to) {
     assert(from != to);
     if (outOfBounds(&clusterData, x, y)) return;
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
@@ -252,9 +224,9 @@ void ClusteringEngine::computeClusters() {
     //Just for logging
     size_t mergeCount = 0;
     
-    for (unsigned int y = 0; y < directionData.rows; ++y) {
+    for (signed int y = 0; y < directionData.rows; y++) {
         float * p_edgeData = narrowEdgeData.ptr<float>(y);
-        for (unsigned int x = 0; x < directionData.cols; ++x) {
+        for (signed int x = 0; x < directionData.cols; x++) {
             if (p_edgeData[x] > startThresh) {
                 Cluster cluster = Cluster((int) storage.size());
                 cluster.point.x = x;
@@ -294,11 +266,11 @@ void ClusteringEngine::visualizeClusters(Mat * visualization, Size size) {
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
     if (storage.size() == 0) return;
     //Draw clusters
-    for (unsigned int y = 0; y < size.height; ++y) {
+    for (unsigned int y = 0; y < size.height; y++) {
         float * p_edgeData = edgeData.ptr<float>(y);
         int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < size.width; ++x) {
+        for (unsigned int x = 0; x < size.width; x++) {
             assert(p_clusterData[x] != TEMPORARY_CLUSTER);
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
                 switch (1) {
@@ -399,7 +371,7 @@ size_t ClusteringEngine::size() {
     return storage.size();
 }
 
-void ClusteringEngine::getClusterInfoAt(unsigned int x, unsigned int y) {
+void ClusteringEngine::getClusterInfoAt(signed int x, signed int y) {
     if (outOfBounds(&clusterData, x, y)) return;
     int16_t * p_clusterData = clusterData.ptr<int16_t>(y);
     if (p_clusterData[x] != UNDEFINED_CLUSTER) {

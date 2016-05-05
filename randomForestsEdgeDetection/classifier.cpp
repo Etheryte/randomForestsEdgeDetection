@@ -34,13 +34,13 @@ bool isRoughlyConnected(Point2i one, Point2i other) {
 int Classifier::getDarkness(Point2i point) {
     int radius = 3;
     int maxDarkness = 0;
-    unsigned int _y = point.y - (int)(radius / 2);
-    unsigned int _x = point.x - (int)(radius / 2);
+    signed int _y = point.y - (int)(radius / 2);
+    signed int _x = point.x - (int)(radius / 2);
     for (unsigned int i = 0; i < radius; i++) {
-        unsigned int y = _y + i;
+        signed int y = _y + i;
         uint8_t * p_darkFrame = scenery->darkFrame.ptr<uint8_t>(y);
         for (unsigned int j = 0; j < radius; j++) {
-            unsigned int x = _x + j;
+            signed int x = _x + j;
             if (outOfBounds(&scenery->darkFrame, x, y)) break;
             maxDarkness = MAX(maxDarkness, p_darkFrame[x]);
         }
@@ -51,13 +51,13 @@ int Classifier::getDarkness(Point2i point) {
 int Classifier::getBrightness(Point2i point) {
     int radius = 3;
     int maxBrightness = 0;
-    unsigned int _y = point.y - (int)(radius / 2);
-    unsigned int _x = point.x - (int)(radius / 2);
+    signed int _y = point.y - (int)(radius / 2);
+    signed int _x = point.x - (int)(radius / 2);
     for (unsigned int i = 0; i < radius; i++) {
-        unsigned int y = _y + i;
+        signed int y = _y + i;
         uint8_t * p_darkFrame = scenery->darkFrame.ptr<uint8_t>(y);
         for (unsigned int j = 0; j < radius; j++) {
-            unsigned int x = _x + j;
+            signed int x = _x + j;
             if (outOfBounds(&scenery->darkFrame, x, y)) break;
             maxBrightness = MAX(maxBrightness, 255 - p_darkFrame[x]);
         }
@@ -66,15 +66,15 @@ int Classifier::getBrightness(Point2i point) {
 }
 
 bool Classifier::hasSaturation(Point2i point) {
-    int radius = 3;
-    int maxDelta = 40; //Naíve check
-    unsigned int _y = point.y - (int)(radius / 2);
-    unsigned int _x = point.x - (int)(radius / 2);
+    int radius = 5;
+    int maxDelta = 50; //Naíve check
+    signed int _y = point.y - (int)(radius / 2);
+    signed int _x = point.x - (int)(radius / 2);
     for (unsigned int i = 0; i < radius; i++) {
-        unsigned int y = _y + i;
+        signed int y = _y + i;
         Vec3b * p_frame = scenery->frame.ptr<Vec3b>(y);
         for (unsigned int j = 0; j < radius; j++) {
-            unsigned int x = _x + j;
+            signed int x = _x + j;
             if (outOfBounds(&scenery->frame, x, y)) break;
             if (abs(p_frame[x][0] - p_frame[x][1]) > maxDelta) return true;
             if (abs(p_frame[x][1] - p_frame[x][2]) > maxDelta) return true;
@@ -104,16 +104,16 @@ void Classifier::visualizeClusterProperties(Mat * visualization, Size size) {
     visualization->release();
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
     
-    for (unsigned int y = 0; y < size.height; ++y) {
+    for (signed int y = 0; y < size.height; y++) {
         int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < size.width; ++x) {
+        for (signed int x = 0; x < size.width; x++) {
             if (p_clusterData[x] != UNDEFINED_CLUSTER && p_visualization[x] == int(0)) {
                 Cluster * cluster = storage->operator[](p_clusterData[x]);
                 //TODO: Bind brightness to average scene brightness!
                 //
-                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 50 && cluster->darkness >= 75 && cluster->brightness > 75) {
-                    setColor(&p_visualization[x], RED);
+                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 20 && cluster->darkness >= 125 && cluster->brightness > 75) {
+                    setColor(&p_visualization[x], roughOpacity(RED, cluster->darkness / 255.0));
                 }
             }
         }
@@ -244,10 +244,10 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
         }
     }
     return;
-    for (unsigned int y = 0; y < size.height; ++y) {
+    for (signed int y = 0; y < size.height; y++) {
         int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
-        for (unsigned int x = 0; x < size.width; ++x) {
+        for (signed int x = 0; x < size.width; x++) {
             if (p_clusterData[x] != UNDEFINED_CLUSTER && p_visualization[x] == int(0)) {
                 Cluster * cluster = storage->operator[](p_clusterData[x]);
                 switch (cluster->classification) {
@@ -270,12 +270,12 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
     Mat darknessMask = Mat(size, CV_8UC1, uint8_t(0));
     //Create a map to look up areas faster later on
     std::vector<std::vector<unsigned int>> map(size.height);
-    for (unsigned int y = 0; y < size.height; ++y) {
+    for (signed int y = 0; y < size.height; y++) {
         int16_t * p_clusterData = clusterData->ptr<int16_t>(y);
         Vec3b * p_visualization = visualization->ptr<Vec3b>(y);
         std::vector<unsigned int> * p_map = & map.at(y);
         bool white = false;
-        for (unsigned int x = 0; x < size.width; ++x) {
+        for (signed int x = 0; x < size.width; x++) {
             if (p_clusterData[x] != UNDEFINED_CLUSTER) {
                 Cluster * cluster = (* storage)[p_clusterData[x]];
                 if (cluster->mass > 5 && cluster->mass < 50) {
@@ -298,8 +298,8 @@ void Classifier::visualizeBallRoi(Mat * visualization, Size size) {
     int scanStep = 5;
     int boxStep = 5;
     //Over the whole image
-    for (unsigned int y = 0; y < size.height; y += scanStep) {
-        for (unsigned int x = 0; x < size.width; x += scanStep) {
+    for (signed int y = 0; y < size.height; y += scanStep) {
+        for (signed int x = 0; x < size.width; x += scanStep) {
             if (!scenery->isInGround(Point2i(x, y))) continue;
             //For every ROI of given size
             for (unsigned int len = minLen; len <= maxLen && y + len < size.height && x + len < size.width; len += boxStep) {

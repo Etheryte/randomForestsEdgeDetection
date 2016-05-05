@@ -42,6 +42,10 @@ void SceneInformation::findGround() {
     erode(yuvFrame, yuvFrame, structuring);
     dilate(yuvFrame, yuvFrame, structuring);
     
+    ResizeFrame(&yuvFrame, factor);
+    imshow("yuv", yuvFrame);
+    ResizeFrame(&yuvFrame, 1.0 / factor);
+    
     //TODO: Do a bool if all is black check and return if is.
     /*
      if ()
@@ -69,9 +73,9 @@ void SceneInformation::findGround() {
     rightHighestPoint = Point2i(bottomLeft);
     
     //Find edge points
-    for (unsigned int y = 0; y < yuvFrame.rows; ++y) {
+    for (unsigned int y = 0; y < yuvFrame.rows; y++) {
         uint8_t * p_yuvFrame = yuvFrame.ptr<uint8_t>(y);
-        for (unsigned int x = 0; x < yuvFrame.cols; ++x) {
+        for (unsigned int x = 0; x < yuvFrame.cols; x++) {
             if (p_yuvFrame[x] > 0) {
                 Point2i point = Point2i(x, y);
                 if (x <= leftEdgeLowest.x) {
@@ -116,9 +120,9 @@ void SceneInformation::findGround() {
     //Tracks only between bottom edge points, split in their centre
     //I was lazy here and used clipDistance
     int delta = rightEdgeLowest.x - leftEdgeLowest.x;
-    for (unsigned int y = yuvFrame.rows; y > 0; --y) {
+    for (signed int y = yuvFrame.rows; y >= 0; --y) {
         uint8_t * p_yuvFrame = yuvFrame.ptr<uint8_t>(y);
-        for (unsigned int x = leftEdgeLowest.x + (delta / 2.0); x > leftEdgeLowest.x; --x) {
+        for (signed int x = leftEdgeLowest.x + (delta / 2.0); x >= leftEdgeLowest.x; --x) {
             if (p_yuvFrame[x] > 0) {
                 Point2i point = Point2i(x, y);
                 if (point.y < leftHighestPoint.y) {
@@ -276,7 +280,7 @@ bool SceneInformation::isInGround(Point2i point) {
 void SceneInformation::drawGround(Mat * _frame) {
     if (groundFound) {
         Vec3b color = RED;
-        int thickness = 2;
+        int thickness = 3;
         line(* _frame, leftEdgeLowest, leftEdgeTracker, color, thickness);
         line(* _frame, leftEdgeTracker, leftEdgeHighest, color, thickness);
         line(* _frame, leftEdgeHighest, leftHighestPoint, color, thickness);

@@ -38,9 +38,9 @@ class ClusteringEngine {
     float minClusterMass;
     float maxClusterMass;
     
-    void remapAnalyzeCluster(unsigned int x, unsigned int y, int16_t from, int16_t to);
+    void remapAnalyzeCluster(signed int x, signed int y, int16_t from, int16_t to);
     bool checkForOverlap(Cluster * cluster);
-    void clusterNeighbours (unsigned int x, unsigned int y, Cluster * cluster, float originalDirection, float previousDirection);
+    void clusterNeighbours (signed int x, signed int y, Cluster * cluster, float originalDirection, float previousDirection);
 public:
     //TODO: Remove temporary public for classifier
     Mat clusterData;
@@ -55,7 +55,7 @@ public:
     void computeClusters();
     void visualizeClusters(Mat * visualization, Size size);
     void clear();
-    void getClusterInfoAt(unsigned int x, unsigned int y);
+    void getClusterInfoAt(signed int x, signed int y);
     ClusteringEngine(float startThresh, float continueThresh, float minClusterMass, float maxClusterMass);
 };
 

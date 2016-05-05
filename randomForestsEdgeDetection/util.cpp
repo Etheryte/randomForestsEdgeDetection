@@ -170,8 +170,8 @@ Point2i operator * (const Point2i &point, const unsigned int &n) {
     return Point2i(point.x * n, point.y * n);
 }
 
-bool outOfBounds (Mat * frame, unsigned int x, unsigned int y) {
-    return (x <= 0 || y <= 0 || x >= (* frame).cols || y >= (* frame).rows);
+bool outOfBounds (Mat * frame, signed int x, signed int y) {
+    return (x < 0 || y < 0 || x >= (* frame).cols || y >= (* frame).rows);
 };
 
 

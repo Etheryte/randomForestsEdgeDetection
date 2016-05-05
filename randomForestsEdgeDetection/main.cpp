@@ -45,7 +45,7 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/new1.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -75,12 +75,17 @@ int main(int argc, const char * argv[]) {
     namedWindow("", 1);
     setMouseCallback("", clickDebug, &clustering);
     
+    //Move forward n frames for sample images
+    //for (int i = 0; i < 23; i++) GetFrame(cap, true);
+    
     while (waitEsc()) {
         //Free up ClusterEngine memory for a new iteration
         clustering.clear();
+        std::ostringstream filename;
+        filename << rootOutputPath << "frame" << std::setfill('0') << std::setw(5) << frameCount++ << ".png";
         
         originalFrame = GetFrame(cap, moveForward);
-        //imshow("original", originalFrame);
+        imshow("original", originalFrame);
         
         //Equalize the frame before finding edges?
         bool equalize = true;
@@ -162,7 +167,7 @@ int main(int argc, const char * argv[]) {
         cannyEdges.convertTo(cannyEdges, CV_32F, 1.0 / 255.0);
         bitwise_or(forestEdges, joinedEdges, joinedEdges, reverseMask);
         bitwise_or(cannyEdges, joinedEdges, joinedEdges, mask);
-        if (false) {
+        if (true) {
             show(joinedEdges);
             while(wait(&moveForward));
             continue;
@@ -187,6 +192,7 @@ int main(int argc, const char * argv[]) {
         
         if (false) {
             show(directionVisualization);
+            //imwrite(filename.str(), directionVisualization);
             while(wait(&moveForward));
             continue;
         }
@@ -195,10 +201,12 @@ int main(int argc, const char * argv[]) {
         clustering.computeClusters();
         clustering.visualizeClusters(&clusterVisualization, frame.size());
         
-        if (false) {
-            show(clusterVisualization);
-            while(wait(&moveForward));
-            continue;
+        if (true) {
+            imshow("clusters", clusterVisualization);
+            if (false) {
+                while(wait(&moveForward));
+                continue;
+            }
         }
         
         //Update clusters with scenery information
@@ -207,10 +215,11 @@ int main(int argc, const char * argv[]) {
         //New ball methods
         if (true) {
             classifier.visualizeClusterProperties(&visualization, frame.size());
-            //originalFrame *= 0.5;
+            originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
             add(originalFrame, visualization, visualization);
-            show(visualization);
+            imshow("ball", visualization);
+            
             while(wait(&moveForward));
             continue;
         }
@@ -220,6 +229,7 @@ int main(int argc, const char * argv[]) {
         classifier.visualizeClasses(&visualization, frame.size());
         
         //Old ball methods
+        //TODO: Remove and clean up?
         if (false) {
             classifier.visualizeBallRoi(&visualization, frame.size());
             originalFrame *= 0.5;
@@ -238,8 +248,6 @@ int main(int argc, const char * argv[]) {
         //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         show(visualization);
         
-        std::ostringstream filename;
-        filename << rootOutputPath << "frame" << std::setfill('0') << std::setw(5) << frameCount++ << ".png";
         while(wait(&moveForward));
     }
     return 0;
