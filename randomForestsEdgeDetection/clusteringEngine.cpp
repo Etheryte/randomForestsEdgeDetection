@@ -17,7 +17,7 @@ int ClusteringEngine::quantizeDirection(float radians) {
         if (radians == UNDEFINED_DIRECTION) return 0;
         return 2;
     }
-    if (radians == UNDEFINED_DIRECTION) return 4;
+    if (radians == UNDEFINED_DIRECTION) return -1;
     if ( (radians >= -1 * STEP && radians < 1 * STEP) || (radians >= 7 * STEP || radians < -7 * STEP)  ) return 0;
     if ( (radians >= 1 * STEP && radians < 3 * STEP)  || (radians >= -7 * STEP && radians < -5 * STEP) ) return 1;
     if ( (radians >= 3 * STEP && radians < 5 * STEP)  || (radians >= -5 * STEP && radians < -3 * STEP) ) return 2;
@@ -43,8 +43,8 @@ void ClusteringEngine::computeDirections() {
     }
     Mat mag;
     magnitude(frame_x, frame_y, mag);
-    float thresh = 0.4;
-    threshold(mag, mag, thresh, 1.0, CV_THRESH_TOZERO);
+    //float thresh = 0.4;
+    //threshold(mag, mag, thresh, 1.0, CV_THRESH_TOZERO);
     //imshow("magnitudes", mag);
     
     for (unsigned int y = 0; y < directionData.rows; y++) {
@@ -100,6 +100,7 @@ void ClusteringEngine::clusterNeighbours (signed int x, signed int y, Cluster * 
     bool quantized = true;
     //Quantized creates more smaller clusters, degree-based creates larger ones but doesn't give good connections
     int quantizedDirection = quantizeDirection(direction);
+    if (quantizedDirection == -1) return;
     uint8_t tmp = 1 << quantizedDirection | cluster->foundDirections;
     if (quantized && (hammingWeight(tmp) == 2 || tmp == 0b0101 || tmp == 0b1010)) return;
     
@@ -224,6 +225,8 @@ void ClusteringEngine::computeClusters() {
     //Just for logging
     size_t mergeCount = 0;
     
+    imshow("wtf", narrowEdgeData);
+    
     for (signed int y = 0; y < directionData.rows; y++) {
         float * p_edgeData = narrowEdgeData.ptr<float>(y);
         for (signed int x = 0; x < directionData.cols; x++) {
@@ -237,7 +240,7 @@ void ClusteringEngine::computeClusters() {
                 cluster.computeGeometrics();
                 //If the cluster is large enough, keep it
                 // && cluster.mass > minClusterMass
-                if (cluster.mass > 0) {
+                if (cluster.mass > minClusterMass) {
                     storage.crossings.clear();
                     //We need an initial run to discover crossings
                     remapAnalyzeCluster(x, y, TEMPORARY_CLUSTER, cluster.uid);
@@ -342,13 +345,8 @@ ClusteringEngine::ClusteringEngine(float startThresh, float continueThresh, floa
 void ClusteringEngine::newDatasource(Mat *edgeData, Mat *directionBasis, bool threshold) {
     edgeData->copyTo(this->edgeData);
     directionBasis->copyTo(this->directionBasis);
+    //TODO: There is a lot of legacy junk here, clean it up
     this->edgeData.convertTo(this->narrowEdgeData, CV_8U, 255);
-    //TODO: just make a separate unconverting method?
-    if (threshold) {
-        Canny(this->narrowEdgeData, this->narrowEdgeData, 40, 120);
-        //Testing fattier edges
-        //dilate(narrowEdgeData, narrowEdgeData, getStructuringElement(MORPH_RECT, Size(2, 2), Point(0, 0)));
-    }
     this->narrowEdgeData.convertTo(this->narrowEdgeData, CV_32F, 1.0/255.0);
     this->directionData = Mat(this->edgeData.rows, this->edgeData.cols, CV_32F, float(0));
     this->clusterData = Mat(this->edgeData.rows, this->edgeData.cols, CV_16SC1, int16_t(UNDEFINED_CLUSTER));

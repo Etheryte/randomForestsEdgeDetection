@@ -20,7 +20,7 @@
 #define BLUE   Vec3b(255,0,0)
 #define YELLOW Vec3b(0,255,255)
 
-#define GROUND_PADDING 5
+#define GROUND_PADDING 3
 #define UNDEFINED_POINT Point2i(-100,-100)
 
 enum Classes {

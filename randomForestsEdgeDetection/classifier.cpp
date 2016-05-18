@@ -230,7 +230,9 @@ void Classifier::visualizeClasses(Mat * visualization, Size size) {
             default:
                 break;
         }
-        line(* visualization, cluster.endingA, cluster.endingB, roughOpacity(color, opacity), width);
+        if (color != WHITE) {
+            line(* visualization, cluster.endingA, cluster.endingB, roughOpacity(color, opacity), width);
+        }
         //Draw tangents
         if (false && cluster.mass > 50) {
             Point a = cluster.center;

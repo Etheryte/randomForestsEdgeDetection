@@ -41,11 +41,11 @@ void SceneInformation::findGround() {
     Mat structuring = getStructuringElement(MORPH_RECT, Size(erodeSize, erodeSize), Point(erodeSize / 2 + 1, erodeSize / 2 + 1));
     erode(yuvFrame, yuvFrame, structuring);
     dilate(yuvFrame, yuvFrame, structuring);
-    
+    /*
     ResizeFrame(&yuvFrame, factor);
     imshow("yuv", yuvFrame);
     ResizeFrame(&yuvFrame, 1.0 / factor);
-    
+    */
     //TODO: Do a bool if all is black check and return if is.
     /*
      if ()

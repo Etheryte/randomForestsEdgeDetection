@@ -45,7 +45,7 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/vid_6.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/new1.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -61,8 +61,9 @@ int main(int argc, const char * argv[]) {
     assert(cap.isOpened());
     bool moveForward = true;
     
-    float startThresh = 0.9;
-    float continueThresh = 0.5;
+    //Obsolete with hysteresis in newDatasource()
+    float startThresh = 0.1;
+    float continueThresh = 0.1;
     float minClusterMass = 5;
     float maxClusterMass = 5000;
     ClusteringEngine clustering(startThresh, continueThresh, minClusterMass, maxClusterMass);
@@ -90,7 +91,7 @@ int main(int argc, const char * argv[]) {
         //Equalize the frame before finding edges?
         bool equalize = true;
         //Mask non-ground for random forest edges?
-        bool maskEdges = true;
+        bool maskEdges = false;
         
         //Equalize
         if (equalize) {
@@ -117,7 +118,7 @@ int main(int argc, const char * argv[]) {
             continue;
         }
         
-        if (maskEdges) {
+        if (false) {
             Mat mask;
             //Ensure no old data remains
             frame = Mat(originalFrame.size(), CV_8SC3, Vec3b(0,0,0));
@@ -144,8 +145,8 @@ int main(int argc, const char * argv[]) {
             Canny(equalized, cannyEdges, means[0] - adjustedSigma, means[0] + adjustedSigma, 3);
             if (false) {
                 //Compare
-                //imshow("forest", edges);
-                show(equalized);
+                imshow("forest", forestEdges);
+                show(cannyEdges);
                 while(wait(&moveForward));
                 continue;
             }
@@ -160,14 +161,20 @@ int main(int argc, const char * argv[]) {
         
         //Cut edges together
         Mat mask = Mat(scenery.groundPaddedUp);
-        Mat reverseMask;
-        bitwise_not(mask, reverseMask);
+        Mat reverseMask = Mat(scenery.groundPaddedDown);
+        bitwise_not(reverseMask, reverseMask);
         
         joinedEdges = Mat(originalFrame.size(), CV_32F, float(0));
         cannyEdges.convertTo(cannyEdges, CV_32F, 1.0 / 255.0);
+        //TODO: Shorten
+        forestEdges.convertTo(forestEdges, CV_8U, 255);
+        Canny(forestEdges, forestEdges, 43, 127);
+        forestEdges.convertTo(forestEdges, CV_32F, 1.0 / 255.0);
+        //
         bitwise_or(forestEdges, joinedEdges, joinedEdges, reverseMask);
+        //forestEdges.copyTo(joinedEdges);
         bitwise_or(cannyEdges, joinedEdges, joinedEdges, mask);
-        if (true) {
+        if (false) {
             show(joinedEdges);
             while(wait(&moveForward));
             continue;
@@ -176,9 +183,10 @@ int main(int argc, const char * argv[]) {
         //Basis for directions
         directions = Mat(originalFrame.size(), CV_32F, float(0));
         equalized.convertTo(equalized, CV_32F, 1.0 / 255.0);
-        unequalized.convertTo(unequalized, CV_32F, 1.0 / 255.0);
-        bitwise_or(forestEdges, directions, directions, reverseMask);
-        bitwise_or(unequalized, directions, directions, mask);
+        //unequalized.convertTo(unequalized, CV_32F, 1.0 / 255.0);
+        //bitwise_or(forestEdges, directions, directions, reverseMask);
+        //bitwise_or(unequalized, directions, directions, mask);
+        equalized.copyTo(directions);
         if (false) {
             show(directions);
             while(wait(&moveForward));
@@ -186,7 +194,8 @@ int main(int argc, const char * argv[]) {
         }
         
         //Get weighed directions
-        clustering.newDatasource(&joinedEdges, &directions, true);
+        //clustering.newDatasource(&joinedEdges, &directions, true);
+        clustering.newDatasource(&joinedEdges, &directions, false);
         clustering.computeDirections();
         clustering.visualizeDirections(&directionVisualization, frame.size());
         
@@ -213,7 +222,7 @@ int main(int argc, const char * argv[]) {
         classifier.updateClusters();
         
         //New ball methods
-        if (true) {
+        if (false) {
             classifier.visualizeClusterProperties(&visualization, frame.size());
             originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
@@ -243,7 +252,7 @@ int main(int argc, const char * argv[]) {
         originalFrame *= 0.5;
         add(visualization, originalFrame, visualization);
         
-        scenery.drawGround(&visualization);
+        //scenery.drawGround(&visualization);
         
         //combineVisualizations(frame, edges, directionVisualization, clusterVisualization, &visualization);
         show(visualization);
