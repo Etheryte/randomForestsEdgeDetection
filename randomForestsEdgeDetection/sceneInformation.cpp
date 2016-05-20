@@ -246,12 +246,12 @@ void SceneInformation::findDark() {
     float correction = 0.0; //TEST: Use same info for brightness
     //Darker areas are of more interest, but don't show the threshed areas
     channel = 255 - channel;
-    threshold(channel, channel, m * correction, 255, CV_THRESH_TOZERO);
+    //threshold(channel, channel, m * correction, 255, CV_THRESH_TOZERO);
     ResizeFrame(&channel, factor);
     bitwise_and(channel, groundUnpadded, channel);
     cvtColor(channel, channel, CV_GRAY2BGR);
     channel.copyTo(darkFrame);
-    //imshow("darkness", channel);
+    imshow("darkness", channel);
     return;
 }
 

@@ -100,6 +100,7 @@ void Classifier::updateClusters() {
     }
 }
 
+//Actually used for ball detection demo now, haven't renamed it yet
 void Classifier::visualizeClusterProperties(Mat * visualization, Size size) {
     visualization->release();
     * visualization = Mat(size, CV_8UC3, uint8_t(0));
@@ -112,8 +113,9 @@ void Classifier::visualizeClusterProperties(Mat * visualization, Size size) {
                 Cluster * cluster = storage->operator[](p_clusterData[x]);
                 //TODO: Bind brightness to average scene brightness!
                 //
-                if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 20 && cluster->darkness >= 125 && cluster->brightness > 75) {
-                    setColor(&p_visualization[x], roughOpacity(RED, cluster->darkness / 255.0));
+                //if (!cluster->hasSaturation && cluster->mass > 5 && cluster->mass < 20 && cluster->darkness >= 200 && cluster->brightness > 75) {
+                if (cluster->mass > 0 && cluster->mass < 20 && cluster->brightness > 100 && cluster->darkness > 100 && !cluster->hasSaturation && inGroundCount(cluster) > 1) {
+                    setColor(&p_visualization[x], RED);
                 }
             }
         }
@@ -201,7 +203,7 @@ int Classifier::inGroundCount(Cluster * cluster) {
 }
 
 bool Classifier::possibleGoalPost(Cluster * cluster) {
-    float deltaPhi = 0.5;
+    float deltaPhi = 0.2;
     if (cluster->averageDirection < M_PI / 2.0 - deltaPhi) return false;
     if (cluster->averageDirection > M_PI / 2.0 + deltaPhi) return false;
     if (cluster->length < 40 || cluster->length > 200) return false;

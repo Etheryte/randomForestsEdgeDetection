@@ -45,7 +45,7 @@ void show(Mat visualization) {
 
 int main(int argc, const char * argv[]) {
     std::string modelFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/model.yml";
-    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/new1.avi";
+    std::string videoFileName = "/Users/eth/Dropbox/thesis/code tests/randomForestsEdgeDetection/vid/bottom_160_120.avi";
     //ffmpeg -i frame%05d.png -c:v libx264 -r 10 -pix_fmt yuv420p out.mp4
     std::string rootOutputPath = "/Users/eth/Desktop/output/";
     Ptr<StructuredEdgeDetection> detector = createStructuredEdgeDetection(modelFileName);
@@ -64,7 +64,7 @@ int main(int argc, const char * argv[]) {
     //Obsolete with hysteresis in newDatasource()
     float startThresh = 0.1;
     float continueThresh = 0.1;
-    float minClusterMass = 5;
+    float minClusterMass = 3;
     float maxClusterMass = 5000;
     ClusteringEngine clustering(startThresh, continueThresh, minClusterMass, maxClusterMass);
     SceneInformation scenery = SceneInformation();
@@ -222,7 +222,7 @@ int main(int argc, const char * argv[]) {
         classifier.updateClusters();
         
         //New ball methods
-        if (false) {
+        if (true) {
             classifier.visualizeClusterProperties(&visualization, frame.size());
             originalFrame *= 0.5;
             add(originalFrame, visualization, originalFrame);
